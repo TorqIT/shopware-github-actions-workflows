@@ -2,6 +2,11 @@ name: Deactivate old Container Apps revisions
 
 on: 
   workflow_call:
+    secrets:
+      SERVICE_PRINCIPAL_ID:
+        required: true
+      SERVICE_PRINCIPAL_PASSWORD:
+        required: true
 
 jobs: 
   deactivate-old-revisions:

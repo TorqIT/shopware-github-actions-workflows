@@ -2,6 +2,11 @@ name: Build, tag, and push Docker images, and deploy to Azure Container Apps
 
 on:
   workflow_call:
+    secrets:
+      SERVICE_PRINCIPAL_ID:
+        required: true
+      SERVICE_PRINCIPAL_PASSWORD:
+        required: true
 
 jobs:
   determine-environment:
