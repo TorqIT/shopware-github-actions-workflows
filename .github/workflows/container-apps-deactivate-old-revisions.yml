@@ -2,6 +2,23 @@ name: Deactivate old Container Apps revisions
 
 on: 
   workflow_call:
+    inputs:
+      TENANT:
+        required: true
+        type: string
+      RESOURCE_GROUP:
+        required: true
+        type: string
+      PHP_FPM_CONTAINER_APP:
+        required: true
+        type: string
+    secrets:
+      SERVICE_PRINCIPAL_ID:
+        required: true
+        type: string
+      SERVICE_PRINCIPAL_PASSWORD:
+        required: true
+        type: string
 
 jobs: 
   deactivate-old-revisions:
@@ -15,7 +32,7 @@ jobs:
         run: |
           echo Logging into Azure...
           az login \
-            --tenant ${{ vars.TENANT }} \
+            --tenant ${{ inputs.TENANT }} \
             --service-principal \
             --username ${{ secrets.SERVICE_PRINCIPAL_ID }} \
             --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
@@ -26,8 +43,8 @@ jobs:
       - name: Deactivate revisions that have been at 0% traffic for 24 hours
         run: |
           timestampOfLatestRevision=$(az containerapp revision list \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.PHP_FPM_CONTAINER_APP }} \
             --output table | tail -n 1 | awk '{ print $1 }')
           echo "Timestamp of latest revision: $timestampOfLatestRevision"
           cleanupInterval=$((12 * 60 * 60))
@@ -38,15 +55,15 @@ jobs:
             # 0% traffic for that same amount of time (since we always set the latest revision to 100% traffic).Therefore, we can 
             # safely deactivate those revisions. 
             revisionsToDeactive=$(az containerapp revision list \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+              --resource-group ${{ inputs.RESOURCE_GROUP }} \
+              --name ${{ inputs.PHP_FPM_CONTAINER_APP }} \
               --output table | sed 1,2d | head -n -1 | awk '{ print $7 }')
             for revision in $revisionsToDeactive
             do 
               echo "Deactivating revision $revision"
               az containerapp revision deactivate \
-                --resource-group ${{ vars.RESOURCE_GROUP }} \
-                --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+                --resource-group ${{ inputs.RESOURCE_GROUP }} \
+                --name ${{ inputs.PHP_FPM_CONTAINER_APP }} \
                 --revision $revision
             done
           else 

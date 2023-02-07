@@ -2,6 +2,32 @@ name: Build, tag, and push Docker images, and deploy to Azure Container Apps
 
 on:
   workflow_call:
+    inputs:
+      CONTAINER_REGISTRY: 
+        required: true
+        type: string
+      RESOURCE_GROUP: 
+        required: true
+        type: string
+      PHP_FPM_CONTAINER_APP: 
+        required: true
+        type: string
+      PHP_FPM_IMAGE: 
+        required: true
+        type: string
+      SUPERVISORD_CONTAINER_APP: 
+        required: true
+        type: string
+      SUPERVISORD_IMAGE: 
+        required: true
+        type: string
+    secrets:
+      SERVICE_PRINCIPAL_ID: 
+        required: true
+        type: string
+      SERVICE_PRINCIPAL_PASSWORD: 
+        required: true
+        type: string
 
 jobs:
   determine-environment:
@@ -26,10 +52,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Log into Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
+      - name: Log into Azure Container Registry ${{ inputs.CONTAINER_REGISTRY }}
         uses: docker/login-action@v1
         with:
-          registry: ${{ vars.CONTAINER_REGISTRY }}
+          registry: ${{ inputs.CONTAINER_REGISTRY }}
           username: ${{ secrets.SERVICE_PRINCIPAL_ID }}
           password: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
 
@@ -49,8 +75,8 @@ jobs:
             context: .
             file: ./docker/php-fpm/Dockerfile
             push: true
-            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:latest,
-                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:${{ github.run_id }}
+            tags: ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.PHP_FPM_IMAGE }}:latest,
+                  ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.PHP_FPM_IMAGE }}:${{ github.run_id }}
             cache-from: type=gha
             cache-to: type=gha,mode=max
 
@@ -60,8 +86,8 @@ jobs:
             context: .
             file: ./docker/supervisord/Dockerfile
             push: true
-            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:latest,
-                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }}
+            tags: ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.SUPERVISORD_IMAGE }}:latest,
+                  ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.SUPERVISORD_IMAGE }}:${{ github.run_id }}
             cache-from: type=gha
             cache-to: type=gha,mode=max
 
@@ -69,7 +95,7 @@ jobs:
         run: |
           echo Logging into Azure...
           az login \
-            --tenant ${{ vars.TENANT }} \
+            --tenant ${{ inputs.TENANT }} \
             --service-principal \
             --username ${{ secrets.SERVICE_PRINCIPAL_ID }} \
             --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
@@ -83,22 +109,22 @@ jobs:
         run: |
           echo Creating new revision of PHP-FPM container...
           az containerapp revision copy \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:${{ github.run_id }} \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.PHP_FPM_CONTAINER_APP }} \
+            --image ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.PHP_FPM_IMAGE }}:${{ github.run_id }} \
             --revision-suffix run-${{ github.run_id }}
 
           echo Redirecting 100% of traffic to new revision...
           az containerapp ingress traffic set \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.PHP_FPM_CONTAINER_APP }} \
             --revision-weight latest=100
       
       - name: Create new revision of supervisord Container App
         run: |
           echo Creating new revision of supervisord container...
           az containerapp revision copy \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.SUPERVISORD_CONTAINER_APP }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }} \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.SUPERVISORD_CONTAINER_APP }} \
+            --image ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.SUPERVISORD_IMAGE }}:${{ github.run_id }} \
             --revision-suffix run-${{ github.run_id }}
