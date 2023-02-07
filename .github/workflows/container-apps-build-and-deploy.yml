@@ -1,7 +1,7 @@
 name: Build, tag, and push Docker images, and deploy to Azure Container Apps
 
 on:
-  worfklow_call:
+  workflow_call:
 
 jobs:
   determine-environment:

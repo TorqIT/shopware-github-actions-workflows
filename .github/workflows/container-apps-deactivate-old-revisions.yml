@@ -1,7 +1,7 @@
 name: Deactivate old Container Apps revisions
 
 on: 
-  worfklow_call:
+  workflow_call:
 
 jobs: 
   deactivate-old-revisions:
