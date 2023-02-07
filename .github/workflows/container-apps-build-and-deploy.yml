@@ -24,10 +24,8 @@ on:
     secrets:
       SERVICE_PRINCIPAL_ID: 
         required: true
-        type: string
       SERVICE_PRINCIPAL_PASSWORD: 
         required: true
-        type: string
 
 jobs:
   determine-environment:
