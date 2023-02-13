@@ -24,10 +24,12 @@ jobs:
             --service-principal \
             --username ${{ secrets.SERVICE_PRINCIPAL_ID }} \
             --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
+
       - name: Install Azure CLI containerapp extension
         run: |
           az config set extension.use_dynamic_install=yes_without_prompt
           az extension add --name containerapp
+
       - name: Deactivate revisions that have been at 0% traffic for 24 hours
         run: |
           timestampOfLatestRevision=$(az containerapp revision list \
