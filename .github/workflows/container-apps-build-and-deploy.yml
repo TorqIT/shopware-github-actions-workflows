@@ -50,7 +50,7 @@ jobs:
           cd pimcore-root/frontend
           npm install --legacy-peer-deps
           npm run ${{ inputs.NPM_RUN_CMD }}
-          if [ ${{ inputs.NPM_SPA }} ]
+          if ${{ inputs.NPM_SPA }}
           then
             cd ../../
             mv pimcore-root/frontend/build/index.html pimcore-root/templates/default/default.html.twig
