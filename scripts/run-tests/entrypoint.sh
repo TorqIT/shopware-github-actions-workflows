@@ -6,6 +6,8 @@ do
   sleep 5
 done
 
+# Some repositories seem to require this
+echo Fixing permissions...
 chown -R www-data:www-data /var/www/html
 
 echo Installing Pimcore...
