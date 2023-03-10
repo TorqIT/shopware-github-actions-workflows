@@ -6,8 +6,10 @@ do
   sleep 5
 done
 
+chown -R www-data:www-data /var/www/html
+
 echo Installing Pimcore...
-runuser -u www-data -- vendor/bin/pimcore-install \
+runuser -u www-data -- /var/www/html/vendor/bin/pimcore-install \
   --admin-username=test \
   --admin-password=test \
   --mysql-host-socket=$DATABASE_HOST \
