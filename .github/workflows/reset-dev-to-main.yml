@@ -41,7 +41,6 @@ jobs:
 
       - name: Reset development branch to match main branch
         run: |
-          git --version
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
           git checkout develop
