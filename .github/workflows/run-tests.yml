@@ -1,0 +1,44 @@
+# Runs Pimcore tests. Typically these are run on Pull Requests, in which case you can trigger this workflow as follows:
+# on:
+#   pull_request:
+#     types: [opened, reopened, synchronize]
+# 
+# Note this workflow assumes there is a buildable PHP-FPM Docker image located in the /docker/php-fpm of the calling repository.
+
+name: Run tests
+
+on:
+  workflow_call:
+    inputs:
+      RUNNER:
+        required: false
+        type: string
+      REUSABLE_WORKFLOW_REF:
+        required: false
+        type: string
+
+jobs:
+  tests:
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+
+    steps:
+      # Checkout the caller repository as usual
+      - uses: actions/checkout@v3
+
+      # Checkout the workflow repository itself so that we can access the extra script files
+      - name: Checkout workflow repository
+        uses: actions/checkout@v3
+        with:
+          repository: TorqIT/pimcore-github-actions-workflows
+          ref: ${{ inputs.REUSABLE_WORKFLOW_REF }}
+          path: reusable-workflow
+
+      - name: Build test container
+        run: docker-compose -f ./reusable-workflow/scripts/run-tests/docker-compose.yml build
+
+      - name: Run tests
+        run: docker-compose -f ./reusable-workflow/scripts/run-tests/docker-compose.yml run tests
+
+      - name: Bring down the containers
+        if: always()
+        run: docker-compose -f  ./reusable-workflow/scripts/run-tests/docker-compose.yml down
