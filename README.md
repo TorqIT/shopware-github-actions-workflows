@@ -2,7 +2,7 @@ This repository contains several [reusable GitHub Actions workflows](https://doc
 ```yaml
   jobs:
     call-reusable-workflow:
-      uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/workflow-file.yaml@tag
+      uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/workflow-file.yml@tag
       # If the reusable workflow requires inputs:
       with:
         input1: value
