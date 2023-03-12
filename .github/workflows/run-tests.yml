@@ -21,6 +21,9 @@ jobs:
   tests:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
 
+    env:
+      TAG: ${{ github.run_id }}
+
     steps:
       # Checkout the caller repository as usual
       - uses: actions/checkout@v3
@@ -33,12 +36,29 @@ jobs:
           ref: ${{ inputs.REUSABLE_WORKFLOW_REF }}
           path: reusable-workflow
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+      
       - name: Build test container
-        run: docker-compose -f ./reusable-workflow/scripts/run-tests/docker-compose.yml build
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          load: true
+          tags: ${{ env.TAG }}
+          file: ./docker/php-fpm/Dockerfile
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run tests
-        run: docker-compose -f ./reusable-workflow/scripts/run-tests/docker-compose.yml run tests
+        run: |
+          docker compose -f ./reusable-workflow/scripts/run-tests/docker-compose.yml run tests
 
       - name: Bring down the containers
         if: always()
-        run: docker-compose -f  ./reusable-workflow/scripts/run-tests/docker-compose.yml down
+        run: |
+          docker compose -f  ./reusable-workflow/scripts/run-tests/docker-compose.yml down
