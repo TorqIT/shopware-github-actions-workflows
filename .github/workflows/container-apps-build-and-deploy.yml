@@ -37,22 +37,42 @@ jobs:
     outputs:
       env: ${{ steps.branch-check.outputs.env }}
 
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  build-and-deploy-php-fpm:
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     needs: [determine-environment]
     environment: ${{ needs.determine-environment.outputs.env }}
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      # Optional step to perform an npm build and to replace the "frontend" of the application with the results
+      - uses: actions/setup-node@v3
+        if: ${{ inputs.NPM_BUILD }}
+        with:
+          node-version: 16
+          cache: 'npm'
+          cache-dependency-path: pimcore-root/frontend/package-lock.json
+
+      - name: Cache node modules
+        id: cache-npm
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
       - name: Perform npm build
         if: ${{ inputs.NPM_BUILD }}
         env:
           CI: "" # required to ensure warnings aren't treated as errors
         run: |
           cd pimcore-root/frontend
-          npm install --legacy-peer-deps
+          npm ci --legacy-peer-deps
           npm run ${{ inputs.NPM_RUN_CMD }}
           if ${{ inputs.NPM_SPA }}
           then
@@ -60,43 +80,32 @@ jobs:
             mv pimcore-root/frontend/build/index.html pimcore-root/templates/default/default.html.twig
             mv pimcore-root/frontend/build/* pimcore-root/public/
           fi
+      
+      - name: Copy in database.yaml file
+        run: cp pimcore-root/config/db/database-dev-prod.yaml pimcore-root/config/database.yaml
 
-      - name: Log into Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
-        uses: docker/login-action@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
+        uses: docker/login-action@v2
         with:
           registry: ${{ vars.CONTAINER_REGISTRY }}
           username: '${{ secrets.SERVICE_PRINCIPAL_ID }}'
           password: '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v1
-      
-      - name: Copy in database.yaml file
-        run: cp pimcore-root/config/db/database-dev-prod.yaml pimcore-root/config/database.yaml
-
       - name: Build and push latest PHP-FPM image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
             context: .
             file: ./docker/php-fpm/Dockerfile
             push: true
             tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:latest,
                   ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:${{ github.run_id }}
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
-
-      - name: Build and push latest supervisord image
-        uses: docker/build-push-action@v2
-        with:
-            context: .
-            file: ./docker/supervisord/Dockerfile
-            push: true
-            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:latest,
-                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }}
             cache-from: type=gha
             cache-to: type=gha,mode=max
 
@@ -122,7 +131,58 @@ jobs:
             --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
             --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:${{ github.run_id }} \
             --revision-suffix run-${{ github.run_id }}
-      
+  
+  build-and-deploy-supervisord:
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    needs: [determine-environment]
+    environment: ${{ needs.determine-environment.outputs.env }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Copy in database.yaml file
+        run: cp pimcore-root/config/db/database-dev-prod.yaml pimcore-root/config/database.yaml
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log into Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.CONTAINER_REGISTRY }}
+          username: '${{ secrets.SERVICE_PRINCIPAL_ID }}'
+          password: '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
+
+      - name: Build and push latest supervisord image
+        uses: docker/build-push-action@v4
+        with:
+            context: .
+            file: ./docker/supervisord/Dockerfile
+            push: true
+            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:latest,
+                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }}
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+
+      - name: Log into Azure CLI
+        run: |
+          echo Logging into Azure...
+          az login \
+            --tenant ${{ vars.TENANT }} \
+            --service-principal \
+            --username '${{ secrets.SERVICE_PRINCIPAL_ID }}' \
+            --password '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
+
+      - name: Install Azure CLI containerapp extension
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt
+          az extension add --name containerapp
+
       - name: Create new revision of supervisord Container App
         run: |
           echo Creating new revision of supervisord container...
