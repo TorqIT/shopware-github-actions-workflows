@@ -52,7 +52,8 @@ jobs:
           file: ./docker/php-fpm/Dockerfile
           context: .
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # We purposefully omit writing to the cache, since this is a PR branch and 
+          # there is no real need to pollute the cache with its content
 
       - name: Run tests
         run: |
