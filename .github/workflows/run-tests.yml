@@ -51,10 +51,7 @@ jobs:
           tags: ${{ env.TAG }}
           file: ./docker/php-fpm/Dockerfile
           context: .
-          cache-from: type=gha
-          # We purposefully omit writing to the cache, since this is a PR branch and 
-          # there is no real need to pollute the cache with its content
-
+          
       - name: Run tests
         run: |
           docker compose -f ./reusable-workflow/scripts/run-tests/docker-compose.yml run tests
