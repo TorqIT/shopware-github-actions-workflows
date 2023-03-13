@@ -4,7 +4,9 @@ services:
   tests:
     depends_on:
       - test-db
-    image: ${TAG}
+    build:
+      Dockerfile: ./docker/php-fpm/Dockerfile
+      context: ./
     environment:
       DATABASE_HOST: test-db
       DATABASE_PORT: 3306
