@@ -124,8 +124,8 @@ jobs:
             --revision-suffix run-${{ github.run_id }}
           echo Ensuring 100% of traffic is set to the latest revision...
           az containerapp ingress traffic set \
-            --name $PHP_FPM_CONTAINER_APP_NAME \
-            --resource-group $RESOURCE_GROUP \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
             --revision-weight latest=100
   
   build-and-deploy-supervisord:
