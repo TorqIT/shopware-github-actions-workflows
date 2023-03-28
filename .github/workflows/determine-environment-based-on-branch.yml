@@ -20,6 +20,8 @@ on:
       RUNNER:
         required: false
         type: string
+    outputs:
+      environment: ${{ jobs.determine-environment.outputs.environment }}
 
 jobs:
   determine-environment:
