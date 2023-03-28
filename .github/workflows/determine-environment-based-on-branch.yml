@@ -21,7 +21,8 @@ on:
         required: false
         type: string
     outputs:
-      environment: ${{ jobs.determine-environment.outputs.environment }}
+      environment: 
+        value: ${{ jobs.determine-environment.outputs.environment }}
 
 jobs:
   determine-environment:
