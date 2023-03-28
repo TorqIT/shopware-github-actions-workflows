@@ -1,0 +1,40 @@
+# Outputs an GitHub Environment name based on the current branch. This workflow assumes the following branch->environment mappings:
+#   develop->development
+#   main->production
+#   staging->staging
+#
+# You can call this workflow and use the output as follows:
+# jobs:
+#   determine-environment:
+#     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/determine-environment-based-on-branch.yml@feat/clients-specify-environments
+# 
+#   another-job:
+#     needs: [determine-environment]
+#     steps:
+#       - run: echo My environment is ${{ needs.determine-environment.outputs.environment }}
+#
+
+on:
+  workflow_call:
+    inputs:
+      RUNNER:
+        required: false
+        type: string
+
+jobs:
+  determine-environment:
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+
+    steps:
+      - name: Determine environment based on branch
+        id: branch-check
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "environment=development" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          fi
+    outputs:
+      environment: ${{ steps.branch-check.outputs.environment }}
