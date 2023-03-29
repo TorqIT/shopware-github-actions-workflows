@@ -10,6 +10,7 @@
 # 
 #   another-job:
 #     needs: [determine-environment]
+#     environment: ${{ needs.determine-environment.outputs.environment }}
 #     steps:
 #       - run: echo My environment is ${{ needs.determine-environment.outputs.environment }}
 #
