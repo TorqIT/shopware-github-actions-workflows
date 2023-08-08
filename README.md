@@ -41,4 +41,4 @@ Each workflow requiring these secrets will detail the required permissions for y
 
 ## Development
 
-All new changes should be introduced via Pull Request. After a PR is successfully merged, create a new release with a new version number. Refer to https://semver.org/ for guidance on how to select a version number.
+All new changes should be introduced via Pull Request. After a PR is successfully merged, create a new release with a new version number and tag (both using the format `vMAJOR.MINOR.PATCH`). Refer to https://semver.org/ for guidance on how to select a version number.
