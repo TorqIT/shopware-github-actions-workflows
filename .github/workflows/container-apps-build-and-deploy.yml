@@ -25,6 +25,7 @@ on:
       SUBMODULES:
         required: false
         type: boolean
+        default: false
 
     secrets:
       SERVICE_PRINCIPAL_ID:
