@@ -22,6 +22,9 @@ on:
       ENVIRONMENT:
         required: true
         type: string
+      SUBMODULES:
+        required: false
+        type: boolean
 
     secrets:
       SERVICE_PRINCIPAL_ID:
@@ -41,6 +44,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          submodules: ${{ inputs.SUBMODULES }}
 
       - uses: actions/setup-node@v3
         if: ${{ inputs.NPM_BUILD }}
