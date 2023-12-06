@@ -13,8 +13,7 @@ runuser -u www-data -- /var/www/html/vendor/bin/pimcore-install \
   --mysql-host-socket=$DATABASE_HOST \
   --mysql-database=$DATABASE_NAME \
   --mysql-username=$DATABASE_USER \
-  --mysql-password=$DATABASE_PASSWORD \
-  --ignore-existing-config
+  --mysql-password=$DATABASE_PASSWORD
 
 echo Rebuilding classes...
 runuser -u www-data -- /var/www/html/bin/console pimcore:deployment:classes-rebuild -c -d -n
