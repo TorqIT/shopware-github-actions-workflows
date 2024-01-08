@@ -86,6 +86,12 @@ jobs:
       - name: Copy in database.yaml file
         run: cp pimcore-root/config/db/database-dev-prod.yaml pimcore-root/config/database.yaml
 
+      - name: Copy in flysystem.yaml file
+        run: |
+          if [ -e pimcore-root/config/flysystem/flysystem-dev-prod.yaml ]; then
+            cp pimcore-root/config/flysystem/flysystem-dev-prod.yaml pimcore-root/config/packages/flysystem.yaml
+          fi
+          
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v2
         with:
