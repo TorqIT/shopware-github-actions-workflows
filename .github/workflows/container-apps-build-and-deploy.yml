@@ -153,6 +153,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          submodules: ${{ inputs.SUBMODULES }}
 
       - name: Copy in database.yaml file
         run: cp pimcore-root/config/db/database-dev-prod.yaml pimcore-root/config/database.yaml
