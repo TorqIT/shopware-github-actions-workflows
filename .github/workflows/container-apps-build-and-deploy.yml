@@ -182,6 +182,7 @@ jobs:
           cache-dependency-path: ${{ inputs.PIMCORE_ROOT }}/frontend/package-lock.json
 
       - name: Cache node modules
+        if: ${{ inputs.NPM_BUILD }}
         id: cache-npm
         uses: actions/cache@v3
         env:
