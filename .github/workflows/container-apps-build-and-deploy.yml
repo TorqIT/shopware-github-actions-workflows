@@ -62,8 +62,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:latest,
-            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }}
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:init-${{ github.run_id }}
 
       - name: Log into Azure CLI
         run: |
@@ -85,7 +84,7 @@ jobs:
           az containerapp job update \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }}
+            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:init-${{ github.run_id }}
 
           echo Running init Container App Job...
           az containerapp job start \
