@@ -124,14 +124,8 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     needs: 
       - run-init-job
-    if: always()
 
     steps:
-      # This is a workaround for the fact there is no way to do a conditional "needs"
-      - name: Fail fast if necessary jobs failed
-        if: ${{ needs.run-init-job.result == 'failure' }}
-        run: exit 1
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
