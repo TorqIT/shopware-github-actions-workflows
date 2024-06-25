@@ -6,12 +6,6 @@ on:
       RUNNER:
         required: false
         type: string
-      NPM_BUILD:
-        required: false
-        type: boolean
-      NPM_RUN_CMD:
-        required: false
-        type: string
       ENVIRONMENT:
         required: true
         type: string
@@ -131,46 +125,6 @@ jobs:
         with:
           submodules: ${{ inputs.SUBMODULES }}
 
-      - uses: actions/setup-node@v4
-        if: ${{ inputs.NPM_BUILD }}
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: ${{ inputs.PIMCORE_ROOT }}/frontend/package-lock.json
-
-      - name: Cache node modules
-        if: ${{ inputs.NPM_BUILD }}
-        id: cache-npm
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-node-modules
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-
-      - name: Perform npm build
-        if: ${{ inputs.NPM_BUILD }}
-        env:
-          CI: "" # required to ensure warnings aren't treated as errors
-        run: |
-          npm --prefix ${{ inputs.PIMCORE_ROOT }}/frontend ci --legacy-peer-deps
-          npm --prefix ${{ inputs.PIMCORE_ROOT }}/frontend run ${{ inputs.NPM_RUN_CMD }}
-          if ${{ inputs.NPM_SPA }}
-          then
-            mv ${{ inputs.PIMCORE_ROOT }}/frontend/build/index.html ${{ inputs.PIMCORE_ROOT }}/templates/${{ inputs.SPA_TWIG }}
-            mv ${{ inputs.PIMCORE_ROOT }}/frontend/build/* ${{ inputs.PIMCORE_ROOT }}/public/
-          fi
-
-      - name: Copy in flysystem.yaml file
-        run: |
-          if [ -e ${{ inputs.PIMCORE_ROOT }}/config/flysystem/flysystem-dev-prod.yaml ]; then
-            cp ${{ inputs.PIMCORE_ROOT }}/config/flysystem/flysystem-dev-prod.yaml ${{ inputs.PIMCORE_ROOT }}/config/packages/flysystem.yaml
-          fi
-          
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
         with:
