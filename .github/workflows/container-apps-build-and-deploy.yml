@@ -25,7 +25,7 @@ on:
         required: true
 
 jobs:
-  run-init-job:
+  build-and-deploy:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     environment: ${{ inputs.ENVIRONMENT }}
 
