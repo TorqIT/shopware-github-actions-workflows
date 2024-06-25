@@ -6,7 +6,7 @@
 # You can call this workflow and use the output as follows:
 # jobs:
 #   determine-environment:
-#     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/determine-environment-based-on-branch.yml@v2
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/determine-environment-based-on-branch.yml@v2
 # 
 #   another-job:
 #     needs: [determine-environment]

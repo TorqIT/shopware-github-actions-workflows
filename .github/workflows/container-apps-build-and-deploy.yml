@@ -12,13 +12,6 @@ on:
       NPM_RUN_CMD:
         required: false
         type: string
-      NPM_SPA:
-        required: false
-        type: boolean
-      SPA_TWIG:
-        required: false
-        type: string
-        default: 'default/default.html.twig'
       ENVIRONMENT:
         required: true
         type: string
@@ -26,53 +19,25 @@ on:
         required: false
         type: boolean
         default: false
-      INIT:
-        required: false
-        type: boolean
-        default: false
-      PIMCORE_ROOT:
+      SHOPWARE_ROOT:
         required: false
         type: string
-        default: 'pimcore-root'
-      PHP_DOCKERFILE:
-        required: false
-        type: string
-        default: 'docker/php-fpm/Dockerfile'
-      PHP_DOCKER_TARGET:
-        required: false
-        type: string
-        default: ''
-      SUPERVISORD_DOCKERFILE:
-        required: false
-        type: string
-        default: 'docker/supervisord/Dockerfile'
-      SUPERVISORD_TARGET:
-        required: false
-        type: string
-        default: ''
+        default: 'src'
 
     secrets:
       SERVICE_PRINCIPAL_ID:
         required: true
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
-      PIMCORE_ENTERPRISE_TOKEN:
-        required: false
-      ENCRYPTION_SECRET:
-        required: false
 
 jobs:
   run-init-job:
-    if: ${{ inputs.INIT }}
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     environment: ${{ inputs.ENVIRONMENT }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Copy in database.yaml file
-        run: cp ${{ inputs.PIMCORE_ROOT }}/config/db/database-dev-prod.yaml ${{ inputs.PIMCORE_ROOT }}/config/database.yaml
 
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
@@ -89,17 +54,16 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: .docker/Dockerfile
-          target: init
+          file: Dockerfile
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.INIT_IMAGE }}:latest,
-            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.INIT_IMAGE }}:${{ github.run_id }}
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:latest,
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }}
 
       - name: Log into Azure CLI
         run: |
@@ -121,7 +85,7 @@ jobs:
           az containerapp job update \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.INIT_IMAGE }}:${{ github.run_id }}
+            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }}
 
           echo Running init Container App Job...
           az containerapp job start \
@@ -156,7 +120,7 @@ jobs:
             exit 1
           fi
 
-  build-and-deploy-php-fpm:
+  build-and-deploy-shopware:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     environment: ${{ inputs.ENVIRONMENT }}
     needs: 
@@ -207,9 +171,6 @@ jobs:
             mv ${{ inputs.PIMCORE_ROOT }}/frontend/build/index.html ${{ inputs.PIMCORE_ROOT }}/templates/${{ inputs.SPA_TWIG }}
             mv ${{ inputs.PIMCORE_ROOT }}/frontend/build/* ${{ inputs.PIMCORE_ROOT }}/public/
           fi
-      
-      - name: Copy in database.yaml file
-        run: cp ${{ inputs.PIMCORE_ROOT }}/config/db/database-dev-prod.yaml ${{ inputs.PIMCORE_ROOT }}/config/database.yaml
 
       - name: Copy in flysystem.yaml file
         run: |
@@ -231,20 +192,16 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push latest PHP-FPM image
-        uses: docker/build-push-action@v5
+      - name: Build and push latest Shopware image
+        uses: docker/build-push-action@v6
         with:
             context: .
-            file: ${{ inputs.PHP_DOCKERFILE }}
-            target: ${{ inputs.PHP_DOCKER_TARGET }}
+            file: Dockerfile
             push: true
             cache-from: type=gha
             cache-to: type=gha,mode=max
-            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:latest,
-                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:${{ github.run_id }}
-            build-args: |
-              PIMCORE_ENTERPRISE_TOKEN=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-              ENCRYPTION_SECRET=${{ secrets.ENCRYPTION_SECRET }}
+            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:latest,
+                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }}
 
       - name: Log into Azure CLI
         run: |
@@ -260,95 +217,17 @@ jobs:
           az config set extension.use_dynamic_install=yes_without_prompt
           az extension add --name containerapp
 
-      - name: Create new revision of PHP-FPM Container App
+      - name: Create new revision of Shopware Container App
         run: |
-          echo Creating new revision of PHP-FPM container...
+          echo Creating new revision of Shopware container...
           az containerapp revision copy \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:${{ github.run_id }} \
+            --name ${{ vars.SHOPWARE_CONTAINER_APP }} \
+            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }} \
             --revision-suffix run-${{ github.run_id }}
           echo Ensuring 100% of traffic is set to the latest revision...
           az containerapp ingress traffic set \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+            --name ${{ vars.SHOPWARE_CONTAINER_APP }} \
             --revision-weight latest=100
   
-  build-and-deploy-supervisord:
-    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
-    environment: ${{ inputs.ENVIRONMENT }}
-    needs:
-      - run-init-job
-    if: always()
-
-    steps:
-      # This is a workaround for the fact there is no way to do a conditional "needs"
-      - name: Fail fast if necessary jobs failed
-        if: ${{ needs.run-init-job.result == 'failure' }}
-        run: exit 1
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: ${{ inputs.SUBMODULES }}
-
-      - name: Copy in database.yaml file
-        run: cp ${{ inputs.PIMCORE_ROOT }}/config/db/database-dev-prod.yaml ${{ inputs.PIMCORE_ROOT }}/config/database.yaml
-
-      - name: Copy in flysystem.yaml file
-        run: |
-          if [ -e ${{ inputs.PIMCORE_ROOT }}/config/flysystem/flysystem-dev-prod.yaml ]; then
-            cp ${{ inputs.PIMCORE_ROOT }}/config/flysystem/flysystem-dev-prod.yaml ${{ inputs.PIMCORE_ROOT }}/config/packages/flysystem.yaml
-          fi
-
-      - name: Log into Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.CONTAINER_REGISTRY }}
-          username: '${{ secrets.SERVICE_PRINCIPAL_ID }}'
-          password: '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
-          
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push latest supervisord image
-        uses: docker/build-push-action@v5
-        with:
-            context: .
-            file: ${{ inputs.SUPERVISORD_DOCKERFILE }}
-            target: ${{ inputs.SUPERVISORD_TARGET }}
-            push: true
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
-            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:latest,
-                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }}
-            build-args: |
-              PIMCORE_ENTERPRISE_TOKEN=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-              ENCRYPTION_SECRET=${{ secrets.ENCRYPTION_SECRET }}
-
-      - name: Log into Azure CLI
-        run: |
-          echo Logging into Azure...
-          az login \
-            --tenant ${{ vars.TENANT }} \
-            --service-principal \
-            --username '${{ secrets.SERVICE_PRINCIPAL_ID }}' \
-            --password '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
-
-      - name: Install Azure CLI containerapp extension
-        run: |
-          az config set extension.use_dynamic_install=yes_without_prompt
-          az extension add --name containerapp
-
-      - name: Create new revision of supervisord Container App
-        run: |
-          echo Creating new revision of supervisord container...
-          az containerapp revision copy \
-            --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.SUPERVISORD_CONTAINER_APP }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }} \
-            --revision-suffix run-${{ github.run_id }}
