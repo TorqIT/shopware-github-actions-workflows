@@ -69,8 +69,10 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: |
-            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
+          file: .docker/Dockerfile
+          target: init
+          tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:latest,
+                ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
       
       - name: Install Azure CLI containerapp extension
         run: |
@@ -122,6 +124,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
             push: true
+            file: .docker/Dockerfile
+            target: web
             tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
                   ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
 
