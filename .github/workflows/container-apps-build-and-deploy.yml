@@ -17,6 +17,10 @@ on:
         required: false
         type: string
         default: 'src'
+      DOCKERFILE_PATH:
+        required: false
+        type: string
+        default: '.docker/Dockerfile'
 
     secrets:
       SERVICE_PRINCIPAL_PASSWORD:
@@ -69,7 +73,7 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          file: .docker/Dockerfile
+          file: ${{ inputs.DOCKERFILE_PATH }}
           target: init
           tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:latest,
                 ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
@@ -124,7 +128,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
             push: true
-            file: .docker/Dockerfile
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+            file: ${{ inputs.DOCKERFILE_PATH }}
             target: web
             tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
                   ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
