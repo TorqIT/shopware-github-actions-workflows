@@ -64,8 +64,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
           file: ${{ inputs.DOCKERFILE_PATH }}
           target: init
           tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:latest,
@@ -130,8 +130,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
             push: true
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
+            # cache-from: type=gha
+            # cache-to: type=gha,mode=max
             file: ${{ inputs.DOCKERFILE_PATH }}
             target: web
             tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
