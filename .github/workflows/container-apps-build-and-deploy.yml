@@ -33,6 +33,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Copy and write relevant files for deploy
+        run: |
+          cp .github/.env.dev src/.env
+          databasePassword=$(az keyvault secret show --name database-password --vault-name ${{ vars.KEY_VAULT_NAME }} --resource-group ${{ vars.RESOURCE_GROUP }} --query value -o tsv)
+          echo "DATABASE_PASSWORD=$databasePassword" >> src/.env
+          echo "DATABASE_URL=mysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}" >> src/.env
+          cp src/config/packages/dev-deploy/*.yaml src/config/packages/dev-deploy
+
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
         with:
@@ -50,12 +58,11 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          load: true
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:init-${{ github.run_id }}
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
 
       - name: Log into Azure CLI
         run: |
@@ -77,7 +84,7 @@ jobs:
           az containerapp job update \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:init-${{ github.run_id }}
+            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:init-${{ github.run_id }}
 
           echo Running init Container App Job...
           az containerapp job start \
@@ -116,20 +123,20 @@ jobs:
         uses: docker/build-push-action@v6
         with:
             push: true
-            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:latest,
-                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }}
+            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
+                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
 
       - name: Create new revision of Shopware Container App
         run: |
           echo Creating new revision of Shopware container...
           az containerapp revision copy \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.SHOPWARE_CONTAINER_APP }} \
-            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_IMAGE }}:${{ github.run_id }} \
+            --name ${{ vars.SHOPWARE_WEB_CONTAINER_APP }} \
+            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }} \
             --revision-suffix run-${{ github.run_id }}
           echo Ensuring 100% of traffic is set to the latest revision...
           az containerapp ingress traffic set \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
-            --name ${{ vars.SHOPWARE_CONTAINER_APP }} \
+            --name ${{ vars.SHOPWARE_WEB_CONTAINER_APP }} \
             --revision-weight latest=100
   
