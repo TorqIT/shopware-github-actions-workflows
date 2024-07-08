@@ -42,9 +42,11 @@ jobs:
 
       - name: Copy and write relevant files for deploy
         run: |
+          rm src/.env
           cp -r ${{ inputs.CI_PATH }}/. ${{ inputs.SHOPWARE_ROOT }}
           echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> ${{ inputs.SHOPWARE_ROOT }}/.env
           echo "DATABASE_URL=mysql://\${DATABASE_USER}:\${DATABASE_PASSWORD}@\${DATABASE_HOST}:\${DATABASE_PORT}/\${DATABASE_NAME}" >> ${{ inputs.SHOPWARE_ROOT }}/.env
+          cat src/.env
 
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
