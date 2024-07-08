@@ -33,6 +33,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Log into Azure CLI
+        run: |
+          echo Logging into Azure...
+          az login \
+            --tenant ${{ vars.TENANT }} \
+            --service-principal \
+            --username '${{ secrets.SERVICE_PRINCIPAL_ID }}' \
+            --password '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
+
       - name: Copy and write relevant files for deploy
         run: |
           cp .github/.env.dev src/.env
@@ -65,15 +74,6 @@ jobs:
           cache-to: type=gha,mode=max
           tags: |
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
-
-      - name: Log into Azure CLI
-        run: |
-          echo Logging into Azure...
-          az login \
-            --tenant ${{ vars.TENANT }} \
-            --service-principal \
-            --username '${{ secrets.SERVICE_PRINCIPAL_ID }}' \
-            --password '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
       
       - name: Install Azure CLI containerapp extension
         run: |
