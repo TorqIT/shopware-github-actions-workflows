@@ -63,7 +63,7 @@ jobs:
         id: buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      - name: Build and push Shopware init image
         uses: docker/build-push-action@v6
         with:
           push: true
@@ -90,7 +90,7 @@ jobs:
           az config set extension.use_dynamic_install=yes_without_prompt
           az extension add --name containerapp
 
-      - name: Run init (migration and seeding) Container App Job
+      - name: Run Shopware init Container App Job
         run: |
           echo Creating new revision of ${{ vars.INIT_CONTAINER_APP_JOB }} Container App Job
           az containerapp job update \
@@ -98,7 +98,7 @@ jobs:
             --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
             --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
 
-          echo Running init Container App Job...
+          echo Running Shopware init Container App Job...
           az containerapp job start \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --name ${{ vars.INIT_CONTAINER_APP_JOB }}
@@ -131,7 +131,7 @@ jobs:
             exit 1
           fi
 
-      - name: Build and push latest Shopware image
+      - name: Build and push Shopware web image
         uses: docker/build-push-action@v6
         with:
             push: true
