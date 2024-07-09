@@ -30,6 +30,8 @@ on:
         required: true
       DATABASE_PASSWORD:
         required: true
+      AZURE_STORAGE_ACCOUNT_KEY:
+        required: true
 
 jobs:
   build-and-deploy:
