@@ -94,6 +94,8 @@ jobs:
           context: .
           file: .docker/Dockerfile
           target: init
+          build-args: |
+              PIMCORE_ENTERPRISE_TOKEN=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
