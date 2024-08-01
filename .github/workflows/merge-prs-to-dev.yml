@@ -16,6 +16,10 @@ on:
       RUNNER:
         required: false
         type: string
+      DEVELOPMENT_BRANCH:
+        required: false
+        type: string
+        default: 'develop'
     secrets:
       WORKFLOW_APP_ID:
         required: true
@@ -24,7 +28,7 @@ on:
 
 jobs:
   merge-pr-to-dev:
-    name: Merge PR branch into development branch
+    name: Merge PR branch into ${{ inputs.DEVELOPMENT_BRANCH }} branch on approval
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     if: github.event.review.state == 'approved'
 
@@ -45,6 +49,6 @@ jobs:
         run: | 
           git config user.name "GitHub Actions Bot"
           git config user.email "<>"
-          git checkout develop
+          git checkout ${{ inputs.DEVELOPMENT_BRANCH }}
           git merge origin/${{ github.event.pull_request.head.ref }} --no-edit
           git push
