@@ -32,6 +32,8 @@ on:
         required: true
       AZURE_STORAGE_ACCOUNT_KEY:
         required: true
+      SHOPWARE_COMPOSER_TOKEN:
+        required: false
 
 jobs:
   build-and-deploy:
@@ -73,6 +75,8 @@ jobs:
           file: ${{ inputs.DOCKERFILE_PATH }}
           context: .
           target: init
+          build-args: |
+              SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:latest,
                 ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
 
@@ -151,6 +155,8 @@ jobs:
             file: ${{ inputs.DOCKERFILE_PATH }}
             context: .
             target: web
+            build-args: |
+                SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
             tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
                   ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
 
