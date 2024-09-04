@@ -146,19 +146,19 @@ jobs:
       #       --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
       #       --job-execution-name ${{ steps.run-init.outputs.EXECUTION_NAME }}
 
-      # - name: Build and push Shopware web image
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #       push: true
-      #       cache-from: type=gha
-      #       cache-to: type=gha,mode=max
-      #       file: ${{ inputs.DOCKERFILE_PATH }}
-      #       context: .
-      #       target: web
-      #       build-args: |
-      #           SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
-      #       tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
-      #             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
+      - name: Build and push Shopware web image
+        uses: docker/build-push-action@v6
+        with:
+            push: true
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+            file: ${{ inputs.DOCKERFILE_PATH }}
+            context: .
+            target: web
+            build-args: |
+                SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
+                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
 
       - name: Create new revision of Shopware Container App
         run: |
