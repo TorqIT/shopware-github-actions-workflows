@@ -29,9 +29,11 @@ on:
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
       DATABASE_PASSWORD:
-        required: true
+        required: false
+        description: "DEPRECATED"
       AZURE_STORAGE_ACCOUNT_KEY:
-        required: true
+        required: false
+        description: "DEPRECATED"
       SHOPWARE_COMPOSER_TOKEN:
         required: false
 
@@ -44,12 +46,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Copy and write relevant files for deploy
+      - name: Copy relevant files for deploy
         run: |
           cp -r ${{ inputs.CI_PATH }}/. ${{ inputs.SHOPWARE_ROOT }}
-          echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> ${{ inputs.SHOPWARE_ROOT }}/.env
-          echo "DATABASE_URL=mysql://\${DATABASE_USER}:\${DATABASE_PASSWORD}@\${DATABASE_HOST}:\${DATABASE_PORT}/\${DATABASE_NAME}" >> ${{ inputs.SHOPWARE_ROOT }}/.env
-          echo "AZURE_STORAGE_ACCOUNT_KEY=${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" >> ${{ inputs.SHOPWARE_ROOT }}/.env
 
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
