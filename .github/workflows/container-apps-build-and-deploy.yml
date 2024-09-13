@@ -36,6 +36,8 @@ on:
         description: "DEPRECATED"
       SHOPWARE_COMPOSER_TOKEN:
         required: false
+      TORQ_GITHUB_TOKEN:
+        required: false
 
 jobs:
   build-and-deploy:
@@ -87,7 +89,7 @@ jobs:
             --service-principal \
             --username '${{ vars.SERVICE_PRINCIPAL_ID }}' \
             --password '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
-      
+
       - name: Install Azure CLI containerapp extension
         run: |
           az config set extension.use_dynamic_install=yes_without_prompt
