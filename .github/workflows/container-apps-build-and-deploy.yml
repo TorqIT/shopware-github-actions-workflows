@@ -182,7 +182,7 @@ jobs:
     steps:
       # This is a workaround for the fact there is no way to do a conditional "needs"
       - name: Fail fast if necessary jobs failed
-        if: ${{ needs.run-init-job.result == 'failure' }}
+        if: ${{ needs.run-init-job.result == 'failure' || needs.run-init-job.result == 'cancelled' }}
         run: exit 1
 
       - name: Checkout repository
@@ -301,7 +301,7 @@ jobs:
     steps:
       # This is a workaround for the fact there is no way to do a conditional "needs"
       - name: Fail fast if necessary jobs failed
-        if: ${{ needs.run-init-job.result == 'failure' }}
+        if: ${{ needs.run-init-job.result == 'failure' || needs.run-init-job.result == 'cancelled' }}
         run: exit 1
 
       - name: Checkout repository
