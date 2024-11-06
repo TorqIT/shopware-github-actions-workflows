@@ -62,6 +62,8 @@ on:
         required: false
       TORQ_GITHUB_TOKEN:
         required: false
+      RECAPTCHA_CLIENT_KEY:
+        required: false
 
 jobs:
   run-init-job:
@@ -218,6 +220,8 @@ jobs:
         env:
           CI: "" # required to ensure warnings aren't treated as errors
         run: |
+          # If the application supports ReCAPTCHA, ensure the client key is present so that it is available for the constructed SPA HTML file
+          export VITE_RECAPTCHA_CLIENT_KEY=${{ secrets.RECAPTCHA_CLIENT_KEY }}
           npm --prefix ${{ inputs.PIMCORE_ROOT }}/frontend ci --legacy-peer-deps
           npm --prefix ${{ inputs.PIMCORE_ROOT }}/frontend run ${{ inputs.NPM_RUN_CMD }}
           if ${{ inputs.NPM_SPA }}
