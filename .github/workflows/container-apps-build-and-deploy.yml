@@ -99,8 +99,11 @@ jobs:
           file: .docker/Dockerfile
           target: init
           build-args: |
+            # TODO continuing to support for legacy projects, but these should not be injected as args
             PIMCORE_ENTERPRISE_TOKEN=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
             TORQ_GITHUB_TOKEN=${{ secrets.TORQ_GITHUB_TOKEN }}
+          secrets: |
+            pimcore-enterprise-token=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
