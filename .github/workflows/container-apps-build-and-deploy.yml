@@ -102,9 +102,9 @@ jobs:
             # TODO continuing to support for legacy projects, but these should not be injected as args
             PIMCORE_ENTERPRISE_TOKEN=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
             TORQ_GITHUB_TOKEN=${{ secrets.TORQ_GITHUB_TOKEN }}
+          # During the build, the kernel secret's value is not important but it still must be set
           secrets: |
-            pimcore-enterprise-token=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-            # During the build, the kernel secret's value is not important but it still must be set
+            pimcore-enterprise-token=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}            
             kernel-secret=secret
           push: true
           cache-from: type=gha
@@ -269,9 +269,9 @@ jobs:
           cache-to: type=gha,mode=max
           tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:latest,
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_FPM_IMAGE }}:${{ github.run_id }}
+          # During the build, the kernel secret's value is not important but it still must be set
           secrets: |
             pimcore-enterprise-token=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-            # During the build, the kernel secret's value is not important but it still must be set
             kernel-secret=secret
           build-args: |
             PIMCORE_ENTERPRISE_TOKEN=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
@@ -359,9 +359,9 @@ jobs:
           tags:
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:latest,
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }}
+          # During the build, the kernel secret's value is not important but it still must be set
           secrets: |
-            pimcore-enterprise-token=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-            # During the build, the kernel secret's value is not important but it still must be set
+            pimcore-enterprise-token=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}        
             kernel-secret=secret
           build-args: |
             PIMCORE_ENTERPRISE_TOKEN=${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
