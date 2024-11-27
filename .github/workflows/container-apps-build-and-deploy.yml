@@ -16,14 +16,18 @@ on:
       SHOPWARE_ROOT:
         required: false
         type: string
-        default: 'src'
+        default: "src"
       DOCKERFILE_PATH:
         required: false
         type: string
-        default: '.docker/Dockerfile'
+        default: ".docker/Dockerfile"
       CI_PATH:
         required: true
         type: string
+      SHOPWARE_WEB_TARGET:
+        required: false
+        type: string
+        default: "web"
 
     secrets:
       SERVICE_PRINCIPAL_PASSWORD:
@@ -77,9 +81,12 @@ jobs:
           context: .
           target: init
           build-args: |
-              SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
-          tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:latest,
-                ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
+            SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          secrets: |
+            shopware-composer-token=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          tags:
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:latest,
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_INIT_IMAGE }}:${{ github.run_id }}
 
       - name: Log into Azure CLI
         run: |
@@ -137,7 +144,7 @@ jobs:
             echo "Execution $executionName failed!"
             exit 1
           fi
-      
+
       # - name: Stop execution of the init Container App Job
       #   if: always()
       #   run: |
@@ -150,16 +157,17 @@ jobs:
       - name: Build and push Shopware web image
         uses: docker/build-push-action@v6
         with:
-            push: true
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
-            file: ${{ inputs.DOCKERFILE_PATH }}
-            context: .
-            target: web
-            build-args: |
-                SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
-            tags: ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
-                  ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          file: ${{ inputs.DOCKERFILE_PATH }}
+          context: .
+          target: ${{ vars.SHOPWARE_WEB_TARGET }}
+          build-args: |
+            SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          tags:
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
 
       - name: Create new revision of Shopware Container App
         run: |
@@ -174,4 +182,3 @@ jobs:
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --name ${{ vars.SHOPWARE_WEB_CONTAINER_APP }} \
             --revision-weight latest=100
-  
