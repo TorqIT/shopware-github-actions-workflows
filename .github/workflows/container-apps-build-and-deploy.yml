@@ -42,6 +42,8 @@ on:
         required: false
       TORQ_GITHUB_TOKEN:
         required: false
+      RECAPTCHA_CLIENT_KEY:
+        required: false
 
 jobs:
   build-and-deploy:
@@ -145,14 +147,16 @@ jobs:
             exit 1
           fi
 
-      # - name: Stop execution of the init Container App Job
-      #   if: always()
-      #   run: |
-      #     echo Stopping execution ${{ steps.run-init.outputs.EXECUTION_NAME }}
-      #     az containerapp job stop \
-      #       --resource-group ${{ vars.RESOURCE_GROUP }} \
-      #       --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
-      #       --job-execution-name ${{ steps.run-init.outputs.EXECUTION_NAME }}
+      # - name: Stop execution
+      #   uses: azure/cli@v2
+      #   with:
+      #     azcliversion: latest
+      #     inlineScript: |
+      #       echo Stopping execution ${{ steps.run-init.outputs.EXECUTION_NAME }}
+      #       az containerapp job stop \
+      #         --resource-group ${{ vars.RESOURCE_GROUP }} \
+      #         --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
+      #         --job-execution-name ${{ steps.run-init.outputs.EXECUTION_NAME }}
 
       - name: Build and push Shopware web image
         uses: docker/build-push-action@v6
