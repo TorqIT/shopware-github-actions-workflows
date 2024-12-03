@@ -28,6 +28,10 @@ on:
         required: false
         type: string
         default: "web"
+      DEPLOY_SUPERVISORD:
+        required: false
+        type: boolean
+        default: false
 
     secrets:
       SERVICE_PRINCIPAL_PASSWORD:
@@ -228,7 +232,7 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     needs:
       - run-init-job
-    if: always()
+    if: ${{ inputs.DEPLOY_SUPERVISORD }}
 
     steps:
       # This is a workaround for the fact there is no way to do a conditional "needs"
