@@ -28,6 +28,10 @@ on:
         required: false
         type: string
         default: "web"
+      DEPLOY_SUPERVISORD:
+        required: false
+        type: boolean
+        default: false
 
     secrets:
       SERVICE_PRINCIPAL_PASSWORD:
@@ -46,7 +50,7 @@ on:
         required: false
 
 jobs:
-  build-and-deploy:
+  run-init-job:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     environment: ${{ inputs.ENVIRONMENT }}
 
@@ -158,7 +162,43 @@ jobs:
       #         --name ${{ vars.INIT_CONTAINER_APP_JOB }} \
       #         --job-execution-name ${{ steps.run-init.outputs.EXECUTION_NAME }}
 
-      - name: Build and push Shopware web image
+  build-and-deploy-php:
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    environment: ${{ inputs.ENVIRONMENT }}
+    needs:
+      - run-init-job
+    if: always()
+
+    steps:
+      # This is a workaround for the fact there is no way to do a conditional "needs"
+      - name: Fail fast if necessary jobs failed
+        if: ${{ needs.run-init-job.result == 'failure' || needs.run-init-job.result == 'cancelled' }}
+        run: exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Copy relevant files for deploy
+        run: |
+          cp -r ${{ inputs.CI_PATH }}/. ${{ inputs.SHOPWARE_ROOT }}
+
+      - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.CONTAINER_REGISTRY }}
+          username: "${{ secrets.SERVICE_PRINCIPAL_ID }}"
+          password: "${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push PHP image
         uses: docker/build-push-action@v6
         with:
           push: true
@@ -173,7 +213,7 @@ jobs:
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
 
-      - name: Create new revision of Shopware Container App
+      - name: Create new revision of PHP Container App
         run: |
           echo Creating new revision of Shopware container...
           az containerapp revision copy \
@@ -186,3 +226,63 @@ jobs:
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --name ${{ vars.SHOPWARE_WEB_CONTAINER_APP }} \
             --revision-weight latest=100
+
+  build-and-deploy-supervisord:
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    environment: ${{ inputs.ENVIRONMENT }}
+    needs:
+      - run-init-job
+    if: ${{ inputs.DEPLOY_SUPERVISORD }}
+
+    steps:
+      # This is a workaround for the fact there is no way to do a conditional "needs"
+      - name: Fail fast if necessary jobs failed
+        if: ${{ needs.run-init-job.result == 'failure' || needs.run-init-job.result == 'cancelled' }}
+        run: exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Copy relevant files for deploy
+        run: |
+          cp -r ${{ inputs.CI_PATH }}/. ${{ inputs.SHOPWARE_ROOT }}
+
+      - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.CONTAINER_REGISTRY }}
+          username: "${{ secrets.SERVICE_PRINCIPAL_ID }}"
+          password: "${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push PHP image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          file: ${{ inputs.DOCKERFILE_PATH }}
+          context: .
+          target: supervisord
+          build-args: |
+            SHOPWARE_COMPOSER_TOKEN=${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          tags:
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:latest,
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }}
+
+      - name: Create new revision of supervisord Container App
+        run: |
+          echo Creating new revision of supervisord container...
+          az containerapp revision copy \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --name ${{ vars.SHOPWARE_WEB_CONTAINER_APP }} \
+            --image ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }} \
+            --revision-suffix run-${{ github.run_id }}
