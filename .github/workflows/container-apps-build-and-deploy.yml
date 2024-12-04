@@ -213,6 +213,15 @@ jobs:
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:latest,
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SHOPWARE_WEB_IMAGE }}:${{ github.run_id }}
 
+      - name: Log into Azure CLI
+        run: |
+          echo Logging into Azure...
+          az login \
+            --tenant ${{ vars.TENANT }} \
+            --service-principal \
+            --username '${{ vars.SERVICE_PRINCIPAL_ID }}' \
+            --password '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
+
       - name: Create new revision of PHP Container App
         run: |
           echo Creating new revision of Shopware container...
@@ -277,6 +286,15 @@ jobs:
           tags:
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:latest,
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE }}:${{ github.run_id }}
+
+      - name: Log into Azure CLI
+        run: |
+          echo Logging into Azure...
+          az login \
+            --tenant ${{ vars.TENANT }} \
+            --service-principal \
+            --username '${{ vars.SERVICE_PRINCIPAL_ID }}' \
+            --password '${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}'
 
       - name: Create new revision of supervisord Container App
         run: |
