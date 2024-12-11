@@ -13,6 +13,12 @@ runs:
       with:
         php-version: '${{ inputs.PHP_VERSION }}'
 
+    - name: Setup jq for parsing JSON
+      uses: dcarbone/install-jq-action@v3
+      with:
+        version: '1.7'
+        force: true
+
     - name: Replace local dependencies in composer.lock with remotes
       shell: bash
       run: |
