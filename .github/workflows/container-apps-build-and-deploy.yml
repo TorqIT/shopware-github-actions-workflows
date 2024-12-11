@@ -42,7 +42,7 @@ on:
       PHP_VERSION:
         required: false
         type: string
-        default: "8.2"
+        default: "8.3"
 
     secrets:
       SERVICE_PRINCIPAL_PASSWORD:
