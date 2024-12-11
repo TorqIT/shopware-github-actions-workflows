@@ -1,7 +1,7 @@
 name: 'Copy Config Files'
 description: 'Copy in common configuration files required for a Shopware deployment to Container Apps'
 inputs:
-  CI_ROOT:
+  CI_PATH:
     required: false
     description: "Location of custom config files in the client's repository"
   SHOPWARE_ROOT:
