@@ -16,6 +16,8 @@ runs:
     - name: Replace local dependencies in composer.lock with remotes
       shell: bash
       run: |
+        jq --version
+        test=$(jq -r '.packages.[]' composer.lock)
         packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version' composer.lock)
         IFS=$'\n'
         for package in $packages
