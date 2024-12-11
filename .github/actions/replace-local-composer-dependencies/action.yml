@@ -26,6 +26,7 @@ runs:
       shell: bash
       run: |
         cd $SHOPWARE_ROOT
+        ls -la
         packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version' composer.lock)
         IFS=$'\n'
         for package in $packages
