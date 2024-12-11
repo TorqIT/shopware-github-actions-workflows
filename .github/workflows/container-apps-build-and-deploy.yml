@@ -1,6 +1,6 @@
 # Builds, tags, and pushes Shopware Docker images to an Azure Container Registry, and deploys them to Container Apps.
 #
-# Requires the following permissions to be set in the callig job:
+# Requires the following permissions to be set in the calling job:
 # permissions:
 #   contents: read
 #   actions: read
