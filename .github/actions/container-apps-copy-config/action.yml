@@ -1,0 +1,37 @@
+name: 'Copy Config Files'
+description: 'Copy in common configuration files required for a Shopware deployment to Container Apps'
+inputs:
+  SHOPWARE_ROOT:
+    required: true
+    description: "Root of the Shopware application in the client repository"
+  GITHUB_TOKEN:
+    required: true
+    description: "GitHub token"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get workflow version
+      id: workflow-version
+      uses: canonical/get-workflow-version-action@v1
+      with:
+        repository-name: TorqIT/shopware-github-actions-workflows
+        file-name: container-apps-build-and-deploy.yml
+        github-token: ${{ inputs.GITHUB_TOKEN }}
+
+    # Checkout the workflow repository itself so that we can access the extra script files
+    - uses: actions/checkout@v4
+      with:
+        repository: TorqIT/shopware-github-actions-workflows
+        ref: ${{ steps.workflow-version.outputs.sha }}
+        path: reusable-workflow
+        fetch-depth: 1
+
+    - name: Copy in default config files
+      shell: bash
+      run: cp -r ./reusable-workflow/.azure/config/* ${{ inputs.SHOPWARE_ROOT }}/config
+
+    - name: Copy any custom files the client has defined for deployment
+      shell: bash
+      run: |
+        cp -r ${{ inputs.CI_PATH }}/. ${{ inputs.SHOPWARE_ROOT }}
