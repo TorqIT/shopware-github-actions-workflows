@@ -1,6 +1,9 @@
 name: 'Copy Config Files'
 description: 'Copy in common configuration files required for a Shopware deployment to Container Apps'
 inputs:
+  CI_ROOT:
+    required: false
+    description: "Location of custom config files in the client's repository"
   SHOPWARE_ROOT:
     required: true
     description: "Root of the Shopware application in the client repository"
@@ -33,5 +36,6 @@ runs:
 
     - name: Copy any custom files the client has defined for deployment
       shell: bash
+      if: "${{ inputs.CI_PATH != '' }}"
       run: |
         cp -r ${{ inputs.CI_PATH }}/. ${{ inputs.SHOPWARE_ROOT }}

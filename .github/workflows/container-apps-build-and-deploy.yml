@@ -29,7 +29,7 @@ on:
         type: string
         default: ".docker/Dockerfile"
       CI_PATH:
-        required: true
+        required: false
         type: string
       SHOPWARE_WEB_TARGET:
         required: false
