@@ -7,6 +7,9 @@ inputs:
   SHOPWARE_ROOT:
     required: true
     description: 'Root of the Shopware files in the project'
+  SHOPWARE_COMPOSER_TOKEN:
+    required: true
+    description: "Token for downloading Shopware dependencies"
 
 runs:
   using: "composite"
@@ -26,7 +29,7 @@ runs:
       shell: bash
       run: |
         cd ${{ github.workspace }}/${{ inputs.SHOPWARE_ROOT }}
-        ls -la
+        composer config --global --auth bearer.packages.shopware.com "${{ secrets.SHOPWARE_COMPOSER_TOKEN }}"
         packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version' composer.lock)
         IFS=$'\n'
         for package in $packages
