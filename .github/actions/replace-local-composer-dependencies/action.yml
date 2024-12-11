@@ -1,0 +1,24 @@
+name: 'Copy Config Files'
+description: 'Copy in common configuration files required for a Shopware deployment to Container Apps'
+inputs:
+  PHP_VERSION:
+    required: true
+    description: 'PHP version'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '${{ inputs.PHP_VERSION }}'
+
+    - name: Replace local dependencies in composer.lock with remotes
+      shell: bash
+      run: |
+        packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version' composer
+        IFS=$'\n'
+        for package in $packages
+        do
+          eval "$package"
+        done
