@@ -29,7 +29,7 @@ runs:
       shell: bash
       run: |
         cd ${{ github.workspace }}/${{ inputs.SHOPWARE_ROOT }}
-        composer config --global --auth bearer.packages.shopware.com "${{ secrets.SHOPWARE_COMPOSER_TOKEN }}"
+        composer config --global --auth bearer.packages.shopware.com "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
         packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version' composer.lock)
         IFS=$'\n'
         for package in $packages
