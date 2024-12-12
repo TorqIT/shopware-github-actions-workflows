@@ -39,6 +39,10 @@ on:
         required: false
         type: boolean
         default: false
+      PHP_VERSION:
+        required: false
+        type: string
+        default: "8.3"
 
     secrets:
       SERVICE_PRINCIPAL_PASSWORD:
@@ -73,7 +77,7 @@ jobs:
           file-name: container-apps-build-and-deploy.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Checkout the workflow repository itself so that we can access the composite Action
+      # Checkout the workflow repository itself so that we can access composite actions
       - uses: actions/checkout@v4
         with:
           repository: TorqIT/shopware-github-actions-workflows
@@ -86,6 +90,12 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI_PATH: ${{ inputs.CI_PATH }}
+
+      - uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          PHP_VERSION: ${{ inputs.PHP_VERSION }}
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
@@ -213,7 +223,7 @@ jobs:
           file-name: container-apps-build-and-deploy.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Checkout the workflow repository itself so that we can access the composite Action
+      # Checkout the workflow repository itself so that we can access composite actions
       - uses: actions/checkout@v4
         with:
           repository: TorqIT/shopware-github-actions-workflows
@@ -226,6 +236,12 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI_PATH: ${{ inputs.CI_PATH }}
+
+      - uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          PHP_VERSION: ${{ inputs.PHP_VERSION }}
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
@@ -305,7 +321,7 @@ jobs:
           file-name: container-apps-build-and-deploy.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Checkout the workflow repository itself so that we can access the composite Action
+      # Checkout the workflow repository itself so that we can access composite actions
       - uses: actions/checkout@v4
         with:
           repository: TorqIT/shopware-github-actions-workflows
@@ -318,6 +334,12 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI_PATH: ${{ inputs.CI_PATH }}
+
+      - uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          PHP_VERSION: ${{ inputs.PHP_VERSION }}
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
       - name: Log in to Azure Container Registry ${{ vars.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
