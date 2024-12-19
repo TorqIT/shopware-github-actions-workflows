@@ -31,33 +31,17 @@ on:
       CI_PATH:
         required: false
         type: string
-      SHOPWARE_WEB_TARGET:
-        required: false
-        type: string
-        default: "web"
-      DEPLOY_SUPERVISORD:
-        required: false
-        type: boolean
-        default: false
       PHP_VERSION:
         required: false
         type: string
         default: "8.3"
 
     secrets:
+      SERVICE_PRINCIPAL_ID:
+        required: true
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
-      DATABASE_PASSWORD:
-        required: false
-        description: "DEPRECATED"
-      AZURE_STORAGE_ACCOUNT_KEY:
-        required: false
-        description: "DEPRECATED"
       SHOPWARE_COMPOSER_TOKEN:
-        required: false
-      TORQ_GITHUB_TOKEN:
-        required: false
-      RECAPTCHA_CLIENT_KEY:
         required: false
 
 jobs:
