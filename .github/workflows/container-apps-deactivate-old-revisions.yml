@@ -26,6 +26,8 @@ on:
         required: true
         type: string
     secrets:
+      SERVICE_PRINCIPAL_ID:
+        required: true
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
 
@@ -44,7 +46,7 @@ jobs:
           az login \
             --tenant ${{ vars.TENANT }} \
             --service-principal \
-            --username ${{ vars.SERVICE_PRINCIPAL_ID }} \
+            --username ${{ secrets.SERVICE_PRINCIPAL_ID }} \
             --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
 
       - name: Install Azure CLI containerapp extension
