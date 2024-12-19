@@ -1,0 +1,98 @@
+name: ''
+description: ''
+inputs:
+  SERVICE_PRINCIPAL_ID:
+    required: true
+    description: ""
+  SERVICE_PRINCIPAL_PASSWORD:
+    required: true
+    description: ""
+  INIT_IMAGE:
+    required: true
+    description: ""
+  INIT_CONTAINER_APP_JOB:
+    required: true
+    description: ""
+  RESOURCE_GROUP:
+    required: true
+    description: ""
+  CONTAINER_REGISTRY:
+    required: true
+    description: ""
+  TENANT:
+    required: true
+    description: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Deploy new revision of init Container App Job and run
+      uses: azure/cli@v2
+      with:
+        inlineScript: |
+          echo Logging into Azure...
+          az login \
+            --tenant ${{ inputs.TENANT }} \
+            --service-principal \
+            --username '${{ inputs.SERVICE_PRINCIPAL_ID }}' \
+            --password '${{ inputs.SERVICE_PRINCIPAL_PASSWORD }}'
+
+    - name: Deploy new revision of init Container App Job
+      uses: azure/cli@v2
+      with:
+        inlineScript: |
+          echo Creating new revision of ${{ inputs.INIT_CONTAINER_APP_JOB }} Container App Job
+          az containerapp job update \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.INIT_CONTAINER_APP_JOB }} \
+            --image ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.INIT_IMAGE }}:${{ github.run_id }}
+
+    - name: Run init job
+      uses: azure/cli@v2
+      id: run-init
+      with:
+        inlineScript: |
+          echo Running init Container App Job...
+          az containerapp job start \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.INIT_CONTAINER_APP_JOB }}
+
+          executionName=$(az containerapp job execution list \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.INIT_CONTAINER_APP_JOB }} \
+            | jq -r '.[] | select(.properties.status | contains("Running")) | .name')
+          echo "EXECUTION_NAME=$executionName" >> $GITHUB_OUTPUT
+          echo Waiting for $executionName to finish...
+
+          executionStatus=$(az containerapp job execution list \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.INIT_CONTAINER_APP_JOB }} \
+            | jq -r --arg executionName $executionName '.[] | select(.name==$executionName) | .properties.status')
+          while [[ "$executionStatus" == "Running" ]]
+          do
+            echo Job execution $executionName is still running...
+            sleep 5
+            executionStatus=$(az containerapp job execution list \
+              --resource-group ${{ inputs.RESOURCE_GROUP }} \
+              --name ${{ inputs.INIT_CONTAINER_APP_JOB }} \
+              | jq -r --arg executionName $executionName '.[] | select(.name==$executionName) | .properties.status')
+          done
+
+          if [[ "$executionStatus" == "Succeeded" ]]
+          then
+            echo "Execution $executionName succeeded!"
+          else
+            echo "Execution $executionName failed!"
+            exit 1
+          fi
+
+    - name: Stop execution 
+      uses: azure/cli@v2
+      if: always()
+      with:
+        inlineScript: |
+          echo Stopping execution ${{ steps.run-init.outputs.EXECUTION_NAME }}
+          az containerapp job stop \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.INIT_CONTAINER_APP_JOB }} \
+            --job-execution-name ${{ steps.run-init.outputs.EXECUTION_NAME }}
