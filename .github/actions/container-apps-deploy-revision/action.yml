@@ -1,0 +1,49 @@
+name: ''
+description: ''
+inputs:
+  TENANT:
+    required: true
+    description: ""
+  SERVICE_PRINCIPAL_ID:
+    required: true
+    description: ""
+  SERVICE_PRINCIPAL_PASSWORD:
+    required: true
+    description: ""
+  RESOURCE_GROUP:
+    required: true
+    description: ""
+  CONTAINER_APP:
+    required: true
+    description: ""
+  CONTAINER_REGISTRY:
+    required: true
+    description: ""
+  IMAGE:
+    required: true
+    description: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Log into Azure CLI
+      uses: azure/cli@v2
+      with:
+        inlineScript: |
+          echo Logging into Azure...
+          az login \
+            --tenant ${{ inputs.TENANT }} \
+            --service-principal \
+            --username '${{ inputs.SERVICE_PRINCIPAL_ID }}' \
+            --password '${{ inputs.SERVICE_PRINCIPAL_PASSWORD }}'
+
+    - name: Create new revision of Container App
+      uses: azure/cli@v2
+      with:
+        inlineScript: |
+          echo Creating new revision of ${{ inputs.CONTAINER_APP }}...
+          az containerapp revision copy \
+            --resource-group ${{ inputs.RESOURCE_GROUP }} \
+            --name ${{ inputs.CONTAINER_APP }} \
+            --image ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.IMAGE }}:${{ github.run_id }} \
+            --revision-suffix run-${{ github.run_id }}

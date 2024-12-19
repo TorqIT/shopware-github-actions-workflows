@@ -1,0 +1,42 @@
+name: ''
+description: ''
+inputs:
+  DOCKERFILE_PATH:
+    required: true
+    description: ""
+  DOCKERFILE_TARGET:
+    required: true
+    description: ""
+  CONTAINER_REGISTRY:
+    required: true
+    description: ""
+  IMAGE:
+    required: true
+    description: ""
+  CACHE_FROM:
+    required: false
+    description: ""
+  CACHE_TO:
+    required: false
+    description: ""
+  SHOPWARE_COMPOSER_TOKEN:
+    required: true
+    description: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build and push image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ${{ inputs.DOCKERFILE_PATH }}
+        target: ${{ inputs.DOCKERFILE_TARGET }}
+        secrets: |
+          shopware-composer-token=${{ inputs.SHOPWARE_COMPOSER_TOKEN }}
+        push: true
+        cache-from: ${{ inputs.CACHE_FROM }}
+        cache-to: ${{ inputs.CACHE_TO }}
+        tags: |
+          ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.IMAGE }}:latest,
+          ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.IMAGE }}:${{ github.run_id }}
