@@ -33,10 +33,6 @@ on:
         required: false
         type: boolean
         default: false
-      INIT:
-        required: false
-        type: boolean
-        default: false
       PIMCORE_ROOT:
         required: false
         type: string
@@ -75,7 +71,6 @@ on:
 jobs:
   build-and-push-images-and-run-init:
     name: Build and push Pimcore Docker images, and run init job
-    if: ${{ inputs.INIT }}
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     environment: ${{ inputs.ENVIRONMENT }}
 
@@ -171,7 +166,7 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     needs:
       - build-and-push-images-and-run-init
-    if: always()
+    if: success() || failure()
     steps:
       - name: Fail fast if necessary jobs failed
         if: ${{ needs.build-and-push-images-and-run-init.result == 'failure' || needs.build-and-push-images-and-run-init.result == 'cancelled' }}
@@ -214,7 +209,7 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     needs:
       - build-and-push-images-and-run-init
-    if: always()
+    if: success() || failure()
     steps:
       - name: Fail fast if necessary jobs failed
         if: ${{ needs.build-and-push-images-and-run-init.result == 'failure' || needs.build-and-push-images-and-run-init.result == 'cancelled' }}
