@@ -22,6 +22,10 @@ inputs:
   IMAGE:
     required: true
     description: ""
+  MULTI_REVISION:
+    required: false
+    description: ""
+    default: "false"
 
 runs:
   using: "composite"
@@ -47,3 +51,12 @@ runs:
             --name ${{ inputs.CONTAINER_APP }} \
             --image ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.IMAGE }}:${{ github.run_id }} \
             --revision-suffix run-${{ github.run_id }}
+
+    - name: If using a multi-revision setup, ensure that 100% of traffic is set to the latest...
+      shell: bash
+      if: ${{ inputs.MULTI_REVISION == "true" }}
+      run: |
+        az containerapp ingress traffic set \
+          --resource-group ${{ inputs.RESOURCE_GROUP }} \
+          --name ${{ inputs.CONTAINER_APP }} \
+          --revision-weight latest=100
