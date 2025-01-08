@@ -57,6 +57,7 @@ runs:
       if: inputs.MULTI_REVISION == 'true'
       with:
         inlineScript: |
+          echo Ensuring latest revision gets 100% of traffic...
           az containerapp ingress traffic set \
             --resource-group ${{ inputs.RESOURCE_GROUP }} \
             --name ${{ inputs.CONTAINER_APP }} \
