@@ -76,7 +76,6 @@ jobs:
         uses: ./reusable-workflow/.github/actions/container-apps-copy-config
         with:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI_PATH: ${{ inputs.CI_PATH }}
 
       - name: Replace local Composer dependencies with their remote counterparts
