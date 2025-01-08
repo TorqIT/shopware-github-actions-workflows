@@ -53,6 +53,10 @@ on:
         required: false
         type: string
         default: ""
+      INIT:
+        required: false
+        type: boolean
+        description: "DEPRECATED"
 
     secrets:
       SERVICE_PRINCIPAL_ID:
