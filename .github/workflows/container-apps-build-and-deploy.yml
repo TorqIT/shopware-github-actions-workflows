@@ -170,12 +170,7 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     needs:
       - build-and-push-images-and-run-init
-    if: success() || failure()
     steps:
-      - name: Fail fast if necessary jobs failed
-        if: ${{ needs.build-and-push-images-and-run-init.result == 'failure' || needs.build-and-push-images-and-run-init.result == 'cancelled' }}
-        run: exit 1
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -214,12 +209,7 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     needs:
       - build-and-push-images-and-run-init
-    if: success() || failure()
     steps:
-      - name: Fail fast if necessary jobs failed
-        if: ${{ needs.build-and-push-images-and-run-init.result == 'failure' || needs.build-and-push-images-and-run-init.result == 'cancelled' }}
-        run: exit 1
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
