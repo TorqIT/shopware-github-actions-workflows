@@ -1,12 +1,6 @@
 name: ''
 description: ''
 inputs:
-  SERVICE_PRINCIPAL_ID:
-    required: true
-    description: ""
-  SERVICE_PRINCIPAL_PASSWORD:
-    required: true
-    description: ""
   INIT_IMAGE:
     required: true
     description: ""
@@ -19,23 +13,29 @@ inputs:
   CONTAINER_REGISTRY:
     required: true
     description: ""
+  SERVICE_PRINCIPAL_ID:
+    required: true
+    description: ""
+  SERVICE_PRINCIPAL_PASSWORD:
+    required: true
+    description: ""
   TENANT:
+    required: true
+    description: ""
+  SUBSCRIPTION:
     required: true
     description: ""
 
 runs:
   using: "composite"
   steps:
-    - name: Deploy new revision of init Container App Job and run
-      uses: azure/cli@v2
+    - name: Log in to Azure
+      uses: ./reusable-workflow/.github/actions/azure-login
       with:
-        inlineScript: |
-          echo Logging into Azure...
-          az login \
-            --tenant ${{ inputs.TENANT }} \
-            --service-principal \
-            --username '${{ inputs.SERVICE_PRINCIPAL_ID }}' \
-            --password '${{ inputs.SERVICE_PRINCIPAL_PASSWORD }}'
+        SERVICE_PRINCIPAL_ID: ${{ inputs.SERVICE_PRINCIPAL_ID }}
+        SERVICE_PRINCIPAL_PASSWORD: ${{ inputs.SERVICE_PRINCIPAL_PASSWORD }}
+        TENANT: ${{ inputs.TENANT }}
+        SUBSCRIPTION: ${{ inputs.SUBSCRIPTION }}
 
     - name: Deploy new revision of init Container App Job
       uses: azure/cli@v2
