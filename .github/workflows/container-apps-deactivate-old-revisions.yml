@@ -51,7 +51,7 @@ jobs:
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
