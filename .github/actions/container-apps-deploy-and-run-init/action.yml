@@ -89,6 +89,7 @@ runs:
     - name: Stop execution 
       uses: azure/cli@v2
       if: always()
+      continue-on-error: true
       with:
         inlineScript: |
           echo Stopping execution ${{ steps.run-init.outputs.EXECUTION_NAME }}
