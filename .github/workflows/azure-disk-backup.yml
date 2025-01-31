@@ -1,4 +1,4 @@
-name: Create a back up an Azure Disk
+name: Create a backup an Azure Disk
 
 on:
   workflow_call:
@@ -21,7 +21,7 @@ on:
 
 jobs:
   back-up-db:
-    name: Create an update of an Azure Disk
+    name: Create an backup of an Azure Disk
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     environment: ${{ inputs.ENVIRONMENT }}
     steps:
