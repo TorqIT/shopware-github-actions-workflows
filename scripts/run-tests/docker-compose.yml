@@ -6,7 +6,8 @@ services:
       - test-db
     build:
       context: ../../..
-      dockerfile: ./docker/php-fpm/Dockerfile
+      dockerfile: ${PHP_DOCKERFILE}
+      target: ${PHP_DOCKERFILE_TARGET}
     environment:
       DATABASE_HOST: test-db
       DATABASE_PORT: 3306
