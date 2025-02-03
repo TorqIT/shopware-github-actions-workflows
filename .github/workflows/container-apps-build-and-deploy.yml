@@ -162,7 +162,6 @@ jobs:
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           INIT_IMAGE: ${{ vars.INIT_IMAGE }}
           INIT_CONTAINER_APP_JOB: ${{ vars.INIT_CONTAINER_APP_JOB }}
-          INIT_CONTAINER_NAME: ${{ vars.INIT_CONTAINER_NAME || 'init' }}
           RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
     
