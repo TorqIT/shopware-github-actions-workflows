@@ -7,9 +7,6 @@ inputs:
   INIT_CONTAINER_APP_JOB:
     required: true
     description: ""
-  INIT_CONTAINER_NAME:
-    required: true
-    description: ""
   RESOURCE_GROUP:
     required: true
     description: ""
@@ -88,7 +85,7 @@ runs:
               --resource-group ${{ inputs.RESOURCE_GROUP }} \
               --name ${{ inputs.INIT_CONTAINER_APP_JOB }} \
               --execution $executionName \
-              --container ${{ inputs.INIT_CONTAINER_NAME }} \
+              --container ${{ inputs.INIT_IMAGE }} \
               --follow true
 
             executionStatus=$(get_execution_status $executionName)
