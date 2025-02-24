@@ -99,7 +99,7 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
           DOCKERFILE_TARGET: init
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          IMAGE: ${{ vars.INIT_IMAGE }}
+          IMAGE: ${{ vars.INIT_IMAGE || 'init' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           CACHE_FROM: type=gha
           CACHE_TO: type=gha,mode=min
@@ -110,7 +110,7 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
           DOCKERFILE_TARGET: php
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          IMAGE: ${{ vars.PHP_FPM_IMAGE }}
+          IMAGE: ${{ vars.PHP_FPM_IMAGE || 'php' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
       - name: Build and push supervisord image
@@ -119,7 +119,7 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
           DOCKERFILE_TARGET: supervisord
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          IMAGE: ${{ vars.SUPERVISORD_IMAGE }}
+          IMAGE: ${{ vars.SUPERVISORD_IMAGE || 'supervisord' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
       - name: Deploy and run init Container App Job
@@ -130,6 +130,7 @@ jobs:
           TENANT: ${{ vars.TENANT }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           INIT_IMAGE: ${{ vars.INIT_IMAGE }}
+          INIT_CONTAINER_NAME: ${{ vars.INIT_CONTAINER_NAME }}
           INIT_CONTAINER_APP_JOB: ${{ vars.INIT_CONTAINER_APP_JOB }}
           RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
