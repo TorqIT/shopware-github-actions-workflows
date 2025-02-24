@@ -2,15 +2,13 @@ name: ''
 description: ''
 inputs:
   INIT_IMAGE:
-    required: false
-    default: "init"
+    required: true
     description: ""
   INIT_CONTAINER_APP_JOB:
     required: true
     description: ""
   INIT_CONTAINER_NAME:
-    required: false
-    default: "init"
+    required: true
     description: ""
   RESOURCE_GROUP:
     required: true
