@@ -97,7 +97,7 @@ jobs:
             mysqldump \
             -h $dbHost \
             -u $dbUser \
-            ${{ vars.AZURE_MYSQL_DATABASE }} \
+            ${{ vars.AZURE_MYSQL_DATABASE || 'pimcore' }} \
             > $fileName
 
           echo "fileName=$fileName" >> $GITHUB_OUTPUT
