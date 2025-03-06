@@ -13,7 +13,7 @@ runs:
   steps:
     - name: Copy in config files
       shell: bash
-      run: cp -r ./reusable-workflow/.azure/config/* ${{ inputs.SHOPWARE_ROOT }}/config
+      run: cp -rn ./reusable-workflow/.azure/config/* ${{ inputs.SHOPWARE_ROOT }}/config
 
     - name: Copy any custom files the client has defined for deployment
       shell: bash
