@@ -1,12 +1,12 @@
-name: 'Copy Config Files'
-description: 'Copy in common configuration files required for a Shopware deployment to Container Apps'
+name: "Replace Local Composer Dependencies"
+description: "Replaces local Composer dependencies with their remote counterparts"
 inputs:
   PHP_VERSION:
     required: true
-    description: 'PHP version'
+    description: "PHP version"
   SHOPWARE_ROOT:
     required: true
-    description: 'Root of the Shopware files in the project'
+    description: "Root of the Shopware files in the project"
   SHOPWARE_COMPOSER_TOKEN:
     required: true
     description: "Token for downloading Shopware dependencies"

@@ -1,4 +1,4 @@
-# Deactivates old revisions of the Shopware web Container App in the given environments.
+# Deactivates inactive revisions of the PHP Shopware Container App in the given environments.
 # 
 # In typical situations, you would want to run this on a schedule such as the following which will 
 # trigger the workflow every 6 hours:
@@ -9,12 +9,32 @@
 # The ENVIRONMENTS input requires an array of GitHub Environments, formatted as follows:
 # jobs:
 #   deactivate-old-revisions:
-#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/container-apps-deactivate-old-revisions.yml@v2
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-container-apps-deactivate-revisions.yml@v7
+#     permissions:
+#       actions: read
+#       contents: read
 #     with:
 #       ENVIRONMENTS: "['development', 'production']"
+#     secrets:
+#       SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
+#       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
+#
+# The GitHub Environments you use with this workflow will need the following variables:
+# - AZURE_TENANT_ID
+#     description: ID of the Azure tenant to deploy to
+#     required: true
+# - AZURE_SUBSCRIPTION_ID
+#     description: ID of the Azure subscription to deploy to
+#     required: true
+# - RESOURCE_GROUP
+#     description: Name of the Azure Resource Group to deploy to
+#     required: true
+# - PHP_CONTAINER_APP
+#     description: Name of the PHP Container App
+#     required: true
 #
 
-name: Deactivate old Container Apps revisions
+name: Deactivate Container App revisions
 
 on: 
   workflow_call:
@@ -22,14 +42,18 @@ on:
       RUNNER:
         required: false
         type: string
+        description: "Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)"
       ENVIRONMENTS:
         required: true
         type: string
+        description: "An array of GitHub Environments on which to run this workflow (see notes above on formatting)"
     secrets:
       SERVICE_PRINCIPAL_ID:
         required: true
+        description: "The ID of the Service Principal in Azure that will be used to deploy. The Service Principal must have permission to deactivate revisions on the Container App"
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
+        description: "The password for the Service Principal in Azure"
 
 jobs: 
   deactivate-old-revisions:
@@ -45,7 +69,7 @@ jobs:
         uses: canonical/get-workflow-version-action@v1
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: container-apps-deactivate-old-revisions.yml
+          file-name: job-azure-container-apps-deactivate-revisions.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
@@ -61,7 +85,7 @@ jobs:
         with:
           SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
-          TENANT: ${{ vars.TENANT }}
+          TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deactivate revisions that have been at 0% traffic for 12 hours
@@ -75,7 +99,7 @@ jobs:
 
             timestampOfLatestRevision=$(az containerapp revision list \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+              --name ${{ vars.PHP_CONTAINER_APP }} \
               --output table | tail -n 1 | awk '{ print $1 }')
             echo "Timestamp of latest revision: $timestampOfLatestRevision"
 
@@ -91,7 +115,7 @@ jobs:
               echo "Fetching revisions to deactivate..."
               revisionsToDeactivate=$(az containerapp revision list \
                 --resource-group ${{ vars.RESOURCE_GROUP }} \
-                --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+                --name ${{ vars.PHP_CONTAINER_APP }} \
                 --output table | sed 1,2d | head -n -1 | awk '{ print $7 }')
               echo "Revisions to deactivate: ${revisionsToDeactivate[*]}"
               if [ ${#revisionsToDeactivate[@]} -eq 0 ]; then
@@ -103,7 +127,7 @@ jobs:
                   echo "Deactivating revision $revision"
                   az containerapp revision deactivate \
                     --resource-group ${{ vars.RESOURCE_GROUP }} \
-                    --name ${{ vars.PHP_FPM_CONTAINER_APP }} \
+                    --name ${{ vars.PHP_CONTAINER_APP }} \
                     --revision $revision
                 done
                 echo "Successfully deactivated all eligible revisions"
