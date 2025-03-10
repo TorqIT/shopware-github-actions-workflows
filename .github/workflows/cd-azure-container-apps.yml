@@ -87,7 +87,8 @@ on:
       SHOPWARE_ROOT:
         required: false
         type: string
-        default: "src"
+        default: "."
+        description: "The path (relative to the project's root) where the Shopware files are stored (config, src, etc.)"
       DOCKERFILE_PATH:
         required: false
         type: string
