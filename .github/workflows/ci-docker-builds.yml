@@ -21,28 +21,16 @@ on:
         required: false
         type: string
         description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
-      NPM_BUILD:
-        required: false
-        type: boolean
-        description: "Whether an NPM build should be run prior to building the PHP image"
-      NPM_RUN_CMD:
-        required: false
-        type: string
-        description: "The NPM command that should be run prior to building the PHP image"
-      NPM_SPA:
-        required: false
-        type: boolean
-        description: "Whether the NPM build results in a single-page application"
-      SPA_TWIG:
-        required: false
-        type: string
-        default: "default/default.html.twig"
-        description: "The path to the Twig file where the result of the NPM single-page application build should be copied"
       SUBMODULES:
         required: false
         type: boolean
         default: false
         description: "Whether to clone submodules when cloning the project repository"
+      PHP_VERSION:
+        required: false
+        type: string
+        default: "8.3"
+        description: "PHP version to use when running Composer directly"
       SHOPWARE_ROOT:
         required: false
         type: string
@@ -86,6 +74,13 @@ jobs:
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          PHP_VERSION: ${{ inputs.PHP_VERSION }}
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
