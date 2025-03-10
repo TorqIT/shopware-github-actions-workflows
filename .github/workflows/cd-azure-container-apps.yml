@@ -74,10 +74,11 @@ on:
         required: false
         type: boolean
         default: false
-      CI_PATH:
+        description: "Whether to clone submodules when cloning the project repository"
+      AZURE_CD_PATH:
         required: false
         type: string
-        description: "Whether to clone submodules when cloning the project repository"
+        description: "(Optional) path (relative to the project's root) containing config files to be copied when running deployment. Will be copied from $AZURE_CD_PATH/config/* to $SHOPWARE_ROOT/config/*"
       PHP_VERSION:
         required: false
         type: string
@@ -136,7 +137,7 @@ jobs:
         uses: ./reusable-workflow/.github/actions/azure-container-apps-copy-config
         with:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
-          CI_PATH: ${{ inputs.CI_PATH }}
+          CD_PATH: ${{ inputs.AZURE_CD_PATH }}
 
       - name: Replace local Composer dependencies with their remote counterparts
         uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
