@@ -1,25 +1,88 @@
 # Builds, tags, and pushes Shopware Docker images to an Azure Container Registry, and deploys them to Container Apps.
+# This workflow assumes an architecture similar to the one in https://github.com/TorqIT/shopware-azure-provisioning - namely, an Azure Container Registry, an init Container App Job, a PHP Container App, and a supervisord Container App.
 #
-# Requires the following permissions to be set in the calling job:
-# permissions:
-#   contents: read
-#   actions: read
+# Invoke this workflow in your project's workflow as follows:
+# on:
+#   push:
+#     branches: [main, develop]
+# jobs:
+#   cd-azure-container-apps:
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/cd-azure-container-apps.yml@v7
+#     permissions:
+#       contents: read
+#       actions: read
+#     with:
+#       ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'test' }}
+#     secrets:
+#       SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
+#       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
+#
+# The GitHub Environments you use with this workflow will need the following variables:
+# - AZURE_TENANT_ID
+#     description: ID of the Azure tenant to deploy to
+#     required: true
+# - AZURE_SUBSCRIPTION_ID
+#     description: ID of the Azure subscription to deploy to
+#     required: true
+# - RESOURCE_GROUP
+#     description: Name of the Azure Resource Group to deploy to
+#     required: true
+# - CONTAINER_REGISTRY
+#     description: Name of the Azure Container Registry to deploy to. This should be the fully qualified name - e.g. myregistry.azurecr.io
+#     required: true
+# - INIT_IMAGE
+#     description: Name of the init Docker image to push to the registry
+#     required: false
+#     default value: init
+# - INIT_CONTAINER_NAME
+#     description: Name of the container inside the init Container App Job
+#     required: false
+#     default value: init
+# - INIT_CONTAINER_APP_JOB
+#     description: Name of the init Container App Job
+#     required: true
+# - PHP_IMAGE
+#     description: Name of the PHP Docker image to push to the registry
+#     required: false
+#     default value: php
+# - PHP_CONTAINER_APP
+#     description: Name of the PHP Container App
+#     required: true
+# - SUPERVISORD_IMAGE
+#     description: Name of the supervisord Docker image to push to the registry
+#     required: false
+#     default value: supervisord
+# - SUPERVISORD_CONTAINER_APP
+#     description: Name of the supervisord Container App
+#     required: true
+#
 
-name: Build, tag, and push Docker images, and deploy to Azure Container Apps
+name: Azure Container Apps Deployment
 
 on:
   workflow_call:
     inputs:
-      RUNNER:
-        required: false
-        type: string
       ENVIRONMENT:
         required: true
         type: string
+        description: "The GitHub Environment in which to run the workflow"
+      RUNNER:
+        required: false
+        type: string
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
       SUBMODULES:
         required: false
         type: boolean
         default: false
+      CI_PATH:
+        required: false
+        type: string
+        description: "Whether to clone submodules when cloning the project repository"
+      PHP_VERSION:
+        required: false
+        type: string
+        default: "8.3"
+        description: "PHP version to use when running Composer directly"
       SHOPWARE_ROOT:
         required: false
         type: string
@@ -28,21 +91,18 @@ on:
         required: false
         type: string
         default: ".docker/Dockerfile"
-      CI_PATH:
-        required: false
-        type: string
-      PHP_VERSION:
-        required: false
-        type: string
-        default: "8.3"
+        description: "The path (relative to the project's root) of the Dockerfile used to build the init image"
 
     secrets:
       SERVICE_PRINCIPAL_ID:
         required: true
+        description: The ID of the Service Principal in Azure that will be used to deploy. The Service Principal must have permission to push images to the Container Registry and to deploy new revisions to the init, PHP and supervisord Container Apps.
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
+        description: The password for the Service Principal in Azure
       SHOPWARE_COMPOSER_TOKEN:
-        required: false
+        required: true
+        description: The value of your project's Shopware Composer token
 
 jobs:
   build-and-push-images-and-run-init:
@@ -61,7 +121,7 @@ jobs:
         uses: canonical/get-workflow-version-action@v1
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: container-apps-build-and-deploy.yml
+          file-name: cd-azure-container-apps.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
@@ -73,7 +133,7 @@ jobs:
           fetch-depth: 1
 
       - name: Copy config files required for running in Azure
-        uses: ./reusable-workflow/.github/actions/container-apps-copy-config
+        uses: ./reusable-workflow/.github/actions/azure-container-apps-copy-config
         with:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           CI_PATH: ${{ inputs.CI_PATH }}
@@ -102,6 +162,9 @@ jobs:
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           CACHE_FROM: type=gha
           CACHE_TO: type=gha,mode=min
+          TAGS: |
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.INIT_IMAGE || 'init' }}:latest,
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.INIT_IMAGE || 'init' }}:${{ github.run_id }}
 
       - name: Build and push PHP image
         uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
@@ -109,8 +172,11 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
           DOCKERFILE_TARGET: php
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          IMAGE: ${{ vars.PHP_FPM_IMAGE || 'php' }}
+          IMAGE: ${{ vars.PHP_IMAGE || 'php' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          TAGS: |
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_IMAGE || 'php' }}:latest,
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_IMAGE || 'php' }}:${{ github.run_id }}
 
       - name: Build and push supervisord image
         uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
@@ -120,13 +186,16 @@ jobs:
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           IMAGE: ${{ vars.SUPERVISORD_IMAGE || 'supervisord' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          TAGS: |
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE || 'supervisord' }}:latest,
+            ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE || 'supervisord' }}:${{ github.run_id }}
 
       - name: Deploy and run init Container App Job
-        uses: ./reusable-workflow/.github/actions/container-apps-deploy-and-run-init
+        uses: ./reusable-workflow/.github/actions/azure-container-apps-deploy-and-run-init
         with:
           SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
-          TENANT: ${{ vars.TENANT }}
+          TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           INIT_IMAGE: ${{ vars.INIT_IMAGE || 'init' }}
           INIT_CONTAINER_NAME: ${{ vars.INIT_CONTAINER_NAME || 'init' }}
@@ -149,7 +218,7 @@ jobs:
         uses: canonical/get-workflow-version-action@v1
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: container-apps-build-and-deploy.yml
+          file-name: cd-azure-container-apps.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
@@ -161,16 +230,16 @@ jobs:
           fetch-depth: 1
 
       - name: Deploy new revision of Container App
-        uses: ./reusable-workflow/.github/actions/container-apps-deploy-revision
+        uses: ./reusable-workflow/.github/actions/azure-container-apps-deploy-revision
         with:
           SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
-          TENANT: ${{ vars.TENANT }}
+          TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-          CONTAINER_APP: ${{ vars.PHP_FPM_CONTAINER_APP }}
-          IMAGE: ${{ vars.PHP_FPM_IMAGE || 'php' }}
+          CONTAINER_APP: ${{ vars.PHP_CONTAINER_APP }}
+          IMAGE: ${{ vars.PHP_IMAGE || 'php' }}
           MULTI_REVISION: "true"
 
   # TODO using a matrix to de-duplicate these two jobs does not seem possible as we are using the "vars" context, which matrices seem to be unable to access (inputs appear empty)
@@ -189,7 +258,7 @@ jobs:
         uses: canonical/get-workflow-version-action@v1
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: container-apps-build-and-deploy.yml
+          file-name: cd-azure-container-apps.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
@@ -201,11 +270,11 @@ jobs:
           fetch-depth: 1
 
       - name: Deploy new revision of Container App
-        uses: ./reusable-workflow/.github/actions/container-apps-deploy-revision
+        uses: ./reusable-workflow/.github/actions/azure-container-apps-deploy-revision
         with:
           SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
-          TENANT: ${{ vars.TENANT }}
+          TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}

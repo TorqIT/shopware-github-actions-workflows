@@ -1,0 +1,115 @@
+# Builds Shopware Docker images. Useful for verification in continuous integration scenarios, for example:
+# on:
+#   pull_request:
+#     types: [opened, reopened, synchronize]
+# jobs:
+#   build-images:
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/ci-docker-builds@v7
+#
+# Requires the following permissions to be set in the callig job:
+# permissions:
+#   contents: read
+#   actions: read
+#
+
+name: Build Docker images
+
+on:
+  workflow_call:
+    inputs:
+      RUNNER:
+        required: false
+        type: string
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
+      NPM_BUILD:
+        required: false
+        type: boolean
+        description: "Whether an NPM build should be run prior to building the PHP image"
+      NPM_RUN_CMD:
+        required: false
+        type: string
+        description: "The NPM command that should be run prior to building the PHP image"
+      NPM_SPA:
+        required: false
+        type: boolean
+        description: "Whether the NPM build results in a single-page application"
+      SPA_TWIG:
+        required: false
+        type: string
+        default: "default/default.html.twig"
+        description: "The path to the Twig file where the result of the NPM single-page application build should be copied"
+      SUBMODULES:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether to clone submodules when cloning the project repository"
+      SHOPWARE_ROOT:
+        required: false
+        type: string
+        default: "."
+        description: "The path (relative to the project's root) in which the Shopware files are stored (e.g. config, src, etc)"
+      DOCKERFILE_PATH:
+        required: false
+        type: string
+        default: ".docker/Dockerfile"
+        description: "The path (relative to the project's root) of the Dockerfile used to build the init image"
+
+    secrets:
+      SHOPWARE_COMPOSER_TOKEN:
+        required: true
+        description: The value of your project's Shopware Composer token
+
+jobs:
+  build-docker-images:
+    name: Build Docker images
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    environment: ${{ inputs.ENVIRONMENT }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/shopware-github-actions-workflows
+          file-name: ci-docker-builds.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/shopware-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
+      - name: Set up Docker
+        uses: ./reusable-workflow/.github/actions/setup-docker
+
+      - name: Build init image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+        with:
+          DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
+          DOCKERFILE_TARGET: init
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
+
+      - name: Build PHP image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+        with:
+          DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
+          DOCKERFILE_TARGET: php
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
+
+      - name: Build supervisord image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+        with:
+          DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
+          DOCKERFILE_TARGET: supervisord
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
