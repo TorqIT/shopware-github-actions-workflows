@@ -1,5 +1,5 @@
 name: "Azure Container Apps Deploy and Run Init"
-description: "Deploys and runs the Pimcore init Container App Job"
+description: "Deploys and runs the Shopware init Container App Job"
 inputs:
   TENANT:
     required: true

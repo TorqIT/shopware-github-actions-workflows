@@ -6,7 +6,7 @@
 #     - cron: "0 0 1 * *" 
 # jobs:
 #   disk-backup:
-#     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/job-azure-mysql-backup.yml@v6
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-mysql-backup.yml@v7
 #     permissions:
 #       contents: read
 #       actions: read
@@ -49,7 +49,7 @@ on:
       RUNNER:
         required: false
         type: string
-        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
       ENVIRONMENT:
         required: true
         type: string
@@ -83,14 +83,14 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/pimcore-github-actions-workflows
+          repository-name: TorqIT/shopware-github-actions-workflows
           file-name: job-azure-mysql-backup.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
@@ -146,7 +146,7 @@ jobs:
               mysqldump \
               -h $dbHost \
               -u $dbUser \
-              ${{ vars.AZURE_MYSQL_DATABASE || 'pimcore' }} \
+              ${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }} \
               > $fileName
           else
             MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
@@ -156,7 +156,7 @@ jobs:
               --ssl-mode=REQUIRED \
               --ssl-mode=VERIFY_CA \
               --ssl-ca ./reusable-workflow/.azure/config/db/DigiCertGlobalRootCA.crt.pem \
-              ${{ vars.AZURE_MYSQL_DATABASE || 'pimcore' }} \
+              ${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }} \
               > $fileName
           fi
 

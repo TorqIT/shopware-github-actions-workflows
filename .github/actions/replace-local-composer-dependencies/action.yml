@@ -1,0 +1,38 @@
+name: "Replace Local Composer Dependencies"
+description: "Replaces local Composer dependencies with their remote counterparts"
+inputs:
+  PHP_VERSION:
+    required: true
+    description: "PHP version"
+  SHOPWARE_ROOT:
+    required: true
+    description: "Root of the Shopware files in the project"
+  SHOPWARE_COMPOSER_TOKEN:
+    required: true
+    description: "Token for downloading Shopware dependencies"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '${{ inputs.PHP_VERSION }}'
+
+    - name: Setup jq for parsing JSON
+      uses: dcarbone/install-jq-action@v3
+      with:
+        version: '1.7'
+        force: true
+
+    - name: Replace local dependencies in composer.lock with remotes
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}/${{ inputs.SHOPWARE_ROOT }}
+        composer config --global --auth bearer.packages.shopware.com "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
+        packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version + " --no-scripts"' composer.lock)
+        IFS=$'\n'
+        for package in $packages
+        do
+          eval "$package"
+        done

@@ -1,4 +1,4 @@
-This repository contains several [reusable GitHub Actions workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) that can be referenced when developing Pimcore projects.
+This repository contains several [reusable GitHub Actions workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) that can be referenced when developing Shopware projects.
 
 ## Usage
 
@@ -7,7 +7,7 @@ The above link should provide the necessary information for using these workflow
 ```yaml
 jobs:
   call-reusable-workflow:
-    uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/workflow-file.yml@sha
+    uses: TorqIT/shopware-github-actions-workflows/.github/workflows/workflow-file.yml@sha
     # If the reusable workflow requires inputs:
     with:
       input1: value
@@ -18,7 +18,7 @@ jobs:
       secret2: value
 ```
 
-where `workflow-file.yml` refers to the actual workflow file you wish to use, and `sha` refers to a commit SHA, tag (e.g. `v6`) or branch name (e.g. `main`). This repository uses a semantic versioning scheme, so referring to a major tag (e.g. `v6`) will allow you to automatically get fixes/non-breaking improvements.
+where `workflow-file.yml` refers to the actual workflow file you wish to use, and `sha` refers to a commit SHA, tag (e.g. `v7`) or branch name (e.g. `main`). This repository uses a semantic versioning scheme, so referring to a major tag (e.g. `v7`) will allow you to automatically get fixes/non-breaking improvements.
 
 ### Environment variables
 
