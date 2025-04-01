@@ -141,12 +141,24 @@ jobs:
           dbHost=$( [ "${{ inputs.AZURE_MARIADB }}" == "true" ] && echo "${{ vars.AZURE_MYSQL_SERVER }}.mariadb.database.azure.com" || echo "${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com" )
           dbUser=$( [ "${{ inputs.AZURE_MARIADB }}" == "true" ] && echo "${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}@$dbHost" || echo "${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}" )
           echo Performing database dump...
-          MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
-            mysqldump \
-            -h $dbHost \
-            -u $dbUser \
-            ${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }} \
-            > $fileName
+          if [ "${{ inputs.AZURE_MARIADB }}" == "true" ]; then
+            MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
+              mysqldump \
+              -h $dbHost \
+              -u $dbUser \
+              ${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }} \
+              > $fileName
+          else
+            MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
+              mysqldump \
+              -h $dbHost \
+              -u $dbUser \
+              --ssl-mode=REQUIRED \
+              --ssl-mode=VERIFY_CA \
+              --ssl-ca ./reusable-workflow/.azure/config/db/DigiCertGlobalRootCA.crt.pem \
+              ${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }} \
+              > $fileName
+          fi               
 
           echo "fileName=$fileName" >> $GITHUB_OUTPUT
           fileSize=$(stat -c%s $fileName)
