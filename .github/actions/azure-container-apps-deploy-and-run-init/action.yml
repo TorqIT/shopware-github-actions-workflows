@@ -84,12 +84,14 @@ runs:
           done
 
           while [[ true ]]; do
+            set +e
             az containerapp job logs show \
               --resource-group ${{ inputs.RESOURCE_GROUP }} \
               --name ${{ inputs.INIT_CONTAINER_APP_JOB }} \
               --execution $executionName \
               --container ${{ inputs.INIT_CONTAINER_NAME }} \
               --follow true
+            set -e
 
             executionStatus=$(get_execution_status $executionName)
 
