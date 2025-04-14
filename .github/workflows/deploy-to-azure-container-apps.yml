@@ -1,4 +1,4 @@
-# Builds, tags, and pushes Pimcore Docker images to an Azure Container Registry, applies Azure infrastrcuture changes, and deploys new revisions to Container Apps.
+# Builds, tags, and pushes Shopware Docker images to an Azure Container Registry, applies Azure infrastrcuture changes, and deploys new revisions to Container Apps.
 # This workflow assumes an architecture similar to the one in https://github.com/TorqIT/shopware-azure-provisioning - namely, an Azure Container Registry, an init Container App Job, a PHP Container App, and a supervisord Container App.
 #
 # Invoke this workflow in your project's workflow as follows:
@@ -132,7 +132,7 @@ on:
         required: false
         type: string
         default: "2"
-        description: "Tag to use when pulling the TORQ Azure provisioning image (https://github.com/TorqIT/pimcore-azure-provisioning)"
+        description: "Tag to use when pulling the TORQ Azure provisioning image (https://github.com/TorqIT/shopware-azure-provisioning)"
 
     secrets:
       SERVICE_PRINCIPAL_ID:
