@@ -1,0 +1,87 @@
+name: "Azure Apply Infrastructure Changes"
+description: "Applies Azure infrastructure updates based on the given parameters file"
+inputs:
+  TENANT:
+    required: true
+    description: "ID of the Azure tenant to log in to"
+  SERVICE_PRINCIPAL_ID:
+    required: true
+    description: "The ID of the Service Principal in Azure that will be used to log in"
+  SERVICE_PRINCIPAL_PASSWORD:
+    required: true
+    description: "The password for the Service Principal in Azure"
+  AZURE_DIRECTORY:
+    required: true
+    description: "Directory containing the Azure parameters file"
+  AZURE_PARAMETERS_FILE:
+    required: true
+    description: "Azure parameters file to base changes on - assumed to be under the directory defined by AZURE_DIRECTORY"
+  AZURE_IMAGE_TAG:
+    required: true
+    description: "Tag to use when pulling the TORQ Azure provisioning image"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Determine if any files under the Azure directory have changed
+      id: changed-azure-files
+      uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46
+      with:
+        files: ${{ inputs.AZURE_DIRECTORY }}/**
+    
+    - name: Echo if no files changed
+      shell: bash
+      if: steps.changed-azure-files.outputs.any_changed == 'false'
+      run: echo "No files in ${{ inputs.AZURE_DIRECTORY }} have changed, so nothing to do!"
+
+    - name: Apply infrastructure changes
+      shell: bash
+      id: apply
+      if: steps.changed-azure-files.outputs.any_changed == 'true'
+      run: |
+        echo "Pulling and starting Azure container..."
+        docker run \
+          --name azure \
+          -d \
+          -v ./${{ inputs.AZURE_DIRECTORY }}:/azure/${{ inputs.AZURE_DIRECTORY }} \
+          ghcr.io/torqit/pimcore-azure-provisioning:${{ inputs.AZURE_IMAGE_TAG }}
+
+        echo "Logging into Azure via container..."
+        docker exec \
+          azure \
+            az login --tenant $(jq -r '.parameters.tenantId.value' ${{ inputs.AZURE_DIRECTORY }}/${{ inputs.AZURE_PARAMETERS_FILE }}) \
+              --service-principal \
+                --username ${{ inputs.SERVICE_PRINCIPAL_ID }} \
+                --password ${{ inputs.SERVICE_PRINCIPAL_PASSWORD }} 
+
+        echo "Applying Azure infrastructure changes based on file ${{ inputs.AZURE_PARAMETERS_FILE }}..."
+        docker exec \
+          azure \
+            ./provision-quick.sh ${{ inputs.AZURE_DIRECTORY }}/${{ inputs.AZURE_PARAMETERS_FILE }}
+
+    - name: Stop deployment in case of failure/cancellation
+      shell: bash
+      if: always()
+      continue-on-error: true
+      env:
+        CHANGED_FILES: ${{ steps.changed-azure-files.outputs.all_changed_files }}
+      run: |
+        if [ ${{ steps.apply.outcome }} == 'failure' ] || [ ${{ steps.apply.outcome }} == 'cancelled' ]; then
+          for file in ${CHANGED_FILES[@]}; do
+            echo "Stopping deployment main based on file ${{ inputs.AZURE_PARAMETERS_FILE }}..."
+            set +e
+            docker exec \
+              azure \
+                az deployment group cancel \
+                  --resource-group $(jq -r '.parameters.resourceGroupName.value' ${{ inputs.AZURE_DIRECTORY }}/${{ inputs.AZURE_PARAMETERS_FILE }}) \
+                  --name main
+            set -e
+          done
+        else
+          echo "No deployments to stop"
+        fi
+
+    - name: Clean up container
+      shell: bash
+      if: always()
+      run: docker rm --force azure

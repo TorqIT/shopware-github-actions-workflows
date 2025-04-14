@@ -1,4 +1,4 @@
-# Builds, tags, and pushes Shopware Docker images to an Azure Container Registry, and deploys them to Container Apps.
+# Builds, tags, and pushes Pimcore Docker images to an Azure Container Registry, applies Azure infrastrcuture changes, and deploys new revisions to Container Apps.
 # This workflow assumes an architecture similar to the one in https://github.com/TorqIT/shopware-azure-provisioning - namely, an Azure Container Registry, an init Container App Job, a PHP Container App, and a supervisord Container App.
 #
 # Invoke this workflow in your project's workflow as follows:
@@ -6,8 +6,8 @@
 #   push:
 #     branches: [main, develop]
 # jobs:
-#   cd-azure-container-apps:
-#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/cd-azure-container-apps.yml@v7
+#   deploy-to-azure-container-apps:
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/deploy-to-azure-container-apps.yml@v8
 #     permissions:
 #       contents: read
 #       actions: read
@@ -55,6 +55,10 @@
 # - SUPERVISORD_CONTAINER_APP
 #     description: Name of the supervisord Container App
 #     required: true
+# - AZURE_PARAMETERS_FILE
+#     description: Name of the Azure parameters file to use to deploy infrastructure changes. Will be assumed to be located in the directory defined by the AZURE_DIRECTORY input.
+#     required: false
+#     default: parameters.ENVIRONMENT.json
 #
 
 name: Azure Container Apps Deployment
@@ -94,6 +98,41 @@ on:
         type: string
         default: ".docker/Dockerfile"
         description: "The path (relative to the project's root) of the Dockerfile used to build the init image"
+      INIT_DOCKER_TARGET:
+        required: false
+        type: string
+        default: "init"
+        description: "The Docker target to use when building the init image"
+      PHP_DOCKERFILE:
+        required: false
+        type: string
+        default: ".docker/Dockerfile"
+        description: "The path (relative to the project's root) of the Dockerfile used to build the PHP image"
+      PHP_DOCKER_TARGET:
+        required: false
+        type: string
+        default: "php"
+        description: "The Docker target to use when building the PHP image"
+      SUPERVISORD_DOCKERFILE:
+        required: false
+        type: string
+        default: ".docker/Dockerfile"
+        description: "The path (relative to the project's root) of the Dockerfile used to build the supervisord image"
+      SUPERVISORD_TARGET:
+        required: false
+        type: string
+        default: "supervisord"
+        description: "The Docker target to use when building the supervisord image"
+      AZURE_DIRECTORY:
+        required: false
+        type: string
+        default: ".azure"
+        description: "The path (relative to the project's root) of the directory containing the project's Azure parameter files"
+      AZURE_IMAGE_TAG:
+        required: false
+        type: string
+        default: "2"
+        description: "Tag to use when pulling the TORQ Azure provisioning image (https://github.com/TorqIT/pimcore-azure-provisioning)"
 
     secrets:
       SERVICE_PRINCIPAL_ID:
@@ -122,8 +161,7 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: cd-azure-container-apps.yml
+          file-name: deploy-to-azure-container-apps.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
@@ -153,6 +191,16 @@ jobs:
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           CONTAINER_REGISTRY_USERNAME: ${{ secrets.SERVICE_PRINCIPAL_ID }}
           CONTAINER_REGISTRY_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
+
+      - name: Apply Azure infrastructure changes
+        uses: ./reusable-workflow/.github/actions/azure-apply-infra-changes
+        with:
+          SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
+          SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
+          TENANT: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_DIRECTORY: ${{ inputs.AZURE_DIRECTORY }}
+          AZURE_IMAGE_TAG: ${{ inputs.AZURE_IMAGE_TAG }}
+          AZURE_PARAMETERS_FILE: ${{ vars.AZURE_PARAMETERS_FILE }}
 
       - name: Build and push init image
         uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
@@ -220,7 +268,7 @@ jobs:
         uses: canonical/get-workflow-version-action@v1
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: cd-azure-container-apps.yml
+          file-name: deploy-to-azure-container-apps.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
@@ -260,7 +308,7 @@ jobs:
         uses: canonical/get-workflow-version-action@v1
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: cd-azure-container-apps.yml
+          file-name: deploy-to-azure-container-apps.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
