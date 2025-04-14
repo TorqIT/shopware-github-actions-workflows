@@ -1,12 +1,12 @@
-# Performs a backup of an Azure Disk and saves it to the same Resource Group.
+# Creates a snapshot of an Azure NFS File Share
 #
 # Invoke this workflow in your project's workflow as follows (example below triggers the workflow once per month):
 # on:
 #   schedule:
 #     - cron: "0 0 1 * *" 
 # jobs:
-#   disk-backup:
-#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-disk-backup.yml@v8
+#   file-share-backup:
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-file-share-backup.yml@v8
 #     permissions:
 #       contents: read
 #       actions: read
@@ -24,15 +24,18 @@
 # - AZURE_SUBSCRIPTION_ID
 #     description: ID of the Azure subscription to deploy to
 #     required: true
-# - AZURE_BACKUP_DISK_NAME
-#     description: Name of the disk to back up
+# - AZURE_FILES_STORAGE_ACCOUNT
+#     description: Name of the Storage Account containing the File Share to be backed up
+#     required: true
+# - AZURE_BACKUP_FILE_SHARE_NAME
+#     description: Name of the File Share to back up
 #     required: true
 # - RESOURCE_GROUP
-#     description: Name of the Resource Group that hosts the disk
+#     description: Name of the Resource Group that hosts the server
 #     required: true
 #
 
-name: Azure Disk Backup
+name: Azure NFS File Share Backup
 
 on:
   workflow_call:
@@ -42,15 +45,13 @@ on:
         type: string
         description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
       ENVIRONMENT:
-        required: false
-        default: production
+        required: true
         type: string
-        description: "The GitHub Environment in which to run the workflow"
 
     secrets:
       SERVICE_PRINCIPAL_ID:
         required: true
-        description: The ID of the Service Principal in Azure that will be used to deploy. The Service Principal must have permission to create disk backups in the Resource Group.
+        description: The ID of the Service Principal in Azure that will be used to deploy. The Service Principal must have permission to update settings on the Storage Account and to create snapshots of File Shares.
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
         description: The password for the Service Principal in Azure
@@ -59,8 +60,8 @@ on:
         description: Webhook URL to send job status messages to
 
 jobs:
-  back-up-db:
-    name: Create an backup of an Azure Disk
+  back-up-file-share:
+    name: Create a snapshot of an Azure NFS File Share
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     environment: ${{ inputs.ENVIRONMENT }}
     steps:
@@ -69,7 +70,7 @@ jobs:
         uses: canonical/get-workflow-version-action@v1
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: job-azure-disk-backup.yml
+          file-name: job-azure-file-share-backup.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
@@ -88,20 +89,39 @@ jobs:
           TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       
-      - name: Create backup
-        id: backup
+      - name: Add temporary network rule for this runner to Storage Account firewall
         uses: azure/cli@v2
         with:
           inlineScript: |
             set -e
-            backupName=$(echo ${{ vars.AZURE_BACKUP_DISK_NAME }})-$(date +%s)
-            az snapshot create \
+            runnerIp=$(curl ipinfo.io/ip)
+            az storage account network-rule add \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --name $backupName \
-              --source ${{ vars.AZURE_BACKUP_DISK_NAME }} \
-              --sku "Standard_ZRS" \
-              --incremental true
-            echo "backupName=$backupName" >> $GITHUB_OUTPUT
+              --account-name ${{ vars.AZURE_FILES_STORAGE_ACCOUNT }} \
+              --ip-address $runnerIp \
+              --verbose
+            echo "Sleep for 180 seconds to allow network rule to propagate to Storage Account..."
+            sleep 180
+
+      - name: Create a snapshot of the File Share
+        id: snapshot
+        run: |
+          set -e
+          snapshotResult=$(az storage share snapshot --name ${{ vars.AZURE_BACKUP_FILE_SHARE_NAME }} --account-name ${{ vars.AZURE_FILES_STORAGE_ACCOUNT }})
+          snapshotName=$(echo $snapshotResult | jq -r '.snapshot')
+          echo "snapshotName=$snapshotName" >> $GITHUB_OUTPUT
+
+      - name: Remove temporary network rule from Storage Account firewall
+        if: always()
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -e
+            runnerIp=$(curl ipinfo.io/ip)
+            az storage account network-rule remove \
+              --resource-group ${{ vars.RESOURCE_GROUP }} \
+              --account-name ${{ vars.AZURE_FILES_STORAGE_ACCOUNT }} \
+              --ip-address $runnerIp
 
       - name: Send job status to Slack
         if: always()
@@ -110,10 +130,10 @@ jobs:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: |
-            text: "*Azure Disk backup job*"
+            text: "*Azure NFS File Share Backup Job*"
             blocks:
               - type: "section"
                 text:
                   type: "mrkdwn"
-                  text: "*Disk backup job for ${{ github.repository }}*: ${{ job.status == 'success' && 'Success! :white_check_mark:' || 'Failed :x:' }}\n\nBackup named *${{ steps.backup.outputs.backupName }}* was created\n\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  text: "*Azure NFS File Share backup job for ${{ github.repository }}*: ${{ job.status == 'success' && 'Success! :white_check_mark:' || 'Failed :x:' }}\n\nSnapshot *${{ steps.snapshot.outputs.snapshotName }}* created\n\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           

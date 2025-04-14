@@ -9,7 +9,7 @@
 # The ENVIRONMENTS input requires an array of GitHub Environments, formatted as follows:
 # jobs:
 #   deactivate-old-revisions:
-#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-container-apps-deactivate-revisions.yml@v7
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/container-apps-deactivate-old-revisions.yml@v8
 #     permissions:
 #       actions: read
 #       contents: read

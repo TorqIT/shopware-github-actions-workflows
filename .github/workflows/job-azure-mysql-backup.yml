@@ -5,8 +5,8 @@
 #   schedule:
 #     - cron: "0 0 1 * *" 
 # jobs:
-#   disk-backup:
-#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-mysql-backup.yml@v7
+#   db-backup:
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-mysql-backup.yml@v8
 #     permissions:
 #       contents: read
 #       actions: read
@@ -17,14 +17,12 @@
 #       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
 #       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 #
+# The GitHub Environments you use with this workflow will need the following variables:
 # - AZURE_TENANT_ID
 #     description: ID of the Azure tenant to deploy to
 #     required: true
 # - AZURE_SUBSCRIPTION_ID
 #     description: ID of the Azure subscription to deploy to
-#     required: true
-# - AZURE_BACKUP_DISK_NAME
-#     description: Name of the disk to back up
 #     required: true
 # - RESOURCE_GROUP
 #     description: Name of the Resource Group that hosts the server
