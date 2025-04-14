@@ -44,7 +44,7 @@ runs:
           --name azure \
           -d \
           -v ./${{ inputs.AZURE_DIRECTORY }}:/azure/${{ inputs.AZURE_DIRECTORY }} \
-          ghcr.io/torqit/shopware-azure-provisioning:upstream-20250414
+          ghcr.io/torqit/shopware-azure-provisioning:${{ inputs.AZURE_IMAGE_TAG }}
 
         echo "Logging into Azure via container..."
         docker exec \
