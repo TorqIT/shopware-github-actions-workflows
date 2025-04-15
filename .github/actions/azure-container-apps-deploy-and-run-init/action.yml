@@ -93,8 +93,8 @@ runs:
 
             executionStatus=$(get_execution_status $executionName)
 
-            if [[ "$executionStatus" == "Running" ]]; then
-              echo "Execution $executionName is running (but logs may not yet be available)..."
+            if [[ "$executionStatus" == "Running" ]] || [[ "$executionStatus" == "Unknown" ]]; then
+              echo "Execution $executionName has status $executionStatus, checking again for logs..."
               continue
             elif [[ "$executionStatus" == "Succeeded" ]]; then
               echo "Execution $executionName succeeded!"
