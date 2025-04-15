@@ -360,9 +360,12 @@ jobs:
     steps:
       - name: Send job status to Slack
         uses: slackapi/slack-github-action@v2
-        if: ${{ vars.SLACK_WORKFLOW_STATUS_NOTIFICATIONS || false }} && (${{ needs.build-and-push-images-and-run-init == 'failure' || needs.deploy-php-container-app-revision == 'failure' || needs.deploy-supervisord-container-app-revision == 'failure' }})
+        env:
+          # Slight hack to get around the fact that secrets cannot be used in step conditionals
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WORKFLOW_STATUS_WEBHOOK_URL }}
+        if: ${{ env.SLACK_WEBHOOK != '' }} && (${{ needs.build-and-push-images-and-run-init == 'failure' || needs.deploy-php-container-app-revision == 'failure' || needs.deploy-supervisord-container-app-revision == 'failure' }})
         with:
-          webhook: ${{ secrets.SLACK_WORKFLOW_STATUS_WEBHOOK_URL }}
+          webhook: ${{ env.SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
           payload: |
             text: "*GitHub deployment failure*"
