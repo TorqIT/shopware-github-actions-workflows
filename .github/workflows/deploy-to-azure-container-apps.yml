@@ -144,6 +144,9 @@ on:
       SHOPWARE_COMPOSER_TOKEN:
         required: true
         description: The value of your project's Shopware Composer token
+      SLACK_WORKFLOW_STATUS_WEBHOOK_URL:
+        required: false
+        description: (Optional) Slack webhook URL to send workflow results to
 
 jobs:
   build-and-push-images-and-run-init:
@@ -344,14 +347,22 @@ jobs:
       - deploy-php-container-app-revision
       - deploy-supervisord-container-app-revision
     steps:
+      - id: check-webhook-url
+        # Hacky workaround to get around the fact that we cannot reference secrets in a conditional
+        run: |
+          if [ "${{ secrets.SLACK_WORKFLOW_STATUS_WEBHOOK_URL }}" != '' ]; then
+            echo "Slack webhook URL is defined"
+            echo "slackWebhookDefined=true" >> $GITHUB_OUTPUT;
+          else
+            echo "Slack webhook URL is not defined"
+            echo "slackWebhookDefined=false" >> $GITHUB_OUTPUT;
+          fi
+
       - name: Send job status to Slack
         uses: slackapi/slack-github-action@v2
-        env:
-          # Slight hack to get around the fact that secrets cannot be used in step conditionals
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WORKFLOW_STATUS_WEBHOOK_URL }}
-        if: ${{ env.SLACK_WEBHOOK != '' }} && (${{ needs.build-and-push-images-and-run-init == 'failure' || needs.deploy-php-container-app-revision == 'failure' || needs.deploy-supervisord-container-app-revision == 'failure' }})
+        if: steps.check-webhook-url.outputs.slackWebhookDefined == 'true'
         with:
-          webhook: ${{ env.SLACK_WEBHOOK }}
+          webhook: ${{ secrets.SLACK_WORKFLOW_STATUS_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: |
             text: "*GitHub deployment failure*"
