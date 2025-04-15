@@ -144,9 +144,6 @@ on:
       SHOPWARE_COMPOSER_TOKEN:
         required: true
         description: The value of your project's Shopware Composer token
-      SLACK_WORKFLOW_STATUS_WEBHOOK_URL:
-        required: false
-        description: (Optional) Slack webhook to send alerts to when workflow fails
 
 jobs:
   build-and-push-images-and-run-init:
