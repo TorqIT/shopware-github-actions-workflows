@@ -158,9 +158,6 @@ on:
       RECAPTCHA_CLIENT_KEY:
         required: false
         description: (Optional) A client key used when building NPM frontends that require ReCAPTCHA
-      SLACK_WORKFLOW_STATUS_WEBHOOK_URL:
-        required: false
-        description: (Optional) Slack webhook to send alerts to when workflow fails
 
 jobs:
   build-and-push-images-and-run-init:
