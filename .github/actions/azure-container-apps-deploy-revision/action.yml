@@ -46,11 +46,24 @@ runs:
       with:
         inlineScript: |
           echo Creating new revision of ${{ inputs.CONTAINER_APP }}...
-          az containerapp revision copy \
-            --resource-group ${{ inputs.RESOURCE_GROUP }} \
-            --name ${{ inputs.CONTAINER_APP }} \
-            --image ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.IMAGE }}:${{ github.run_id }} \
-            --revision-suffix run-${{ github.run_id }}
+          retries=0
+          while [[ $retries < 3 ]]; do
+            az containerapp revision copy \
+              --resource-group ${{ inputs.RESOURCE_GROUP }} \
+              --name ${{ inputs.CONTAINER_APP }} \
+              --image ${{ inputs.CONTAINER_REGISTRY }}/${{ inputs.IMAGE }}:${{ github.run_id }} \
+              --revision-suffix run-${{ github.run_id }} \
+              || true # do not exit the script on error
+            status=$?
+            if [[ $status != 0 ]]; then
+              echo Revision creation failed, retrying...
+              retries=$((retries + 1))
+              continue
+            else
+              exit 0
+            fi 
+          done
+          echo Failed to create revision!
 
     - name: If using a multi-revision setup, ensure that 100% of traffic is set to the latest...
       uses: azure/cli@v2
