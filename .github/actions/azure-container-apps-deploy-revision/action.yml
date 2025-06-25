@@ -47,6 +47,7 @@ runs:
             fi 
           done
           echo Failed to create revision!
+          exit 1
 
     - name: If using a multi-revision setup, ensure that 100% of traffic is set to the latest...
       uses: azure/cli@v2
