@@ -230,7 +230,7 @@ jobs:
         uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
         with:
           DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
-          DOCKERFILE_TARGET: init
+          DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           IMAGE: ${{ vars.INIT_IMAGE || 'init' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
@@ -244,7 +244,7 @@ jobs:
         uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
         with:
           DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
-          DOCKERFILE_TARGET: php
+          DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           IMAGE: ${{ vars.PHP_IMAGE || 'php' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
@@ -256,7 +256,7 @@ jobs:
         uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
         with:
           DOCKERFILE_PATH: ${{ inputs.DOCKERFILE_PATH }}
-          DOCKERFILE_TARGET: supervisord
+          DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           IMAGE: ${{ vars.SUPERVISORD_IMAGE || 'supervisord' }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
@@ -283,7 +283,7 @@ jobs:
           INIT_CONTAINER_APP_JOB: ${{ vars.INIT_CONTAINER_APP_JOB }}
           RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
-    
+
   deploy-php-container-app-revision:
     name: Deploy new revision of PHP Container App
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
