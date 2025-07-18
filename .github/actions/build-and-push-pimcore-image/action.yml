@@ -35,6 +35,9 @@ inputs:
   TORQ_GITHUB_TOKEN:
     required: true
     description: "(Optional) A GitHub access token used to access private GitHub repositories"
+  BUILD_TIME_SECRETS:
+    required: true
+    description: "(Optional) A JSON object containing a list of secrets and their values in key: value format"
   NPM_BUILD:
     required: false
     default: "false"
@@ -92,6 +95,19 @@ runs:
           mv ${{ inputs.PIMCORE_ROOT }}/frontend/build/* ${{ inputs.PIMCORE_ROOT }}/public/
         fi
 
+    - name: Prepare Docker build secrets
+      id: build-secrets
+      run: |
+        set -e
+        JSON_INPUT='${{ inputs.BUILD_TIME_SECRETS }}'
+        echo "secrets<<EOF" >> $GITHUB_OUTPUT
+        echo "$JSON_INPUT" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | while IFS='=' read -r key value; do
+          echo "::add-mask::$value"   # Mask the value from logs
+          echo "$key=$value" >> $GITHUB_OUTPUT
+        done
+        echo "EOF" >> $GITHUB_OUTPUT
+      shell: bash
+
     - name: Build and push image
       uses: docker/build-push-action@v5
       with:
@@ -103,6 +119,7 @@ runs:
           pimcore-enterprise-token=${{ inputs.PIMCORE_ENTERPRISE_TOKEN }}            
           torq-github-token=${{ inputs.TORQ_GITHUB_TOKEN }}
           kernel-secret=secret
+          ${{ steps.build-secrets.outputs.secrets }}
         push: ${{ fromJSON(inputs.PUSH) }}
         cache-from: ${{ inputs.CACHE_FROM }}
         cache-to: ${{ inputs.CACHE_TO }}
