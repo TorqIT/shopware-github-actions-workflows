@@ -141,6 +141,7 @@ jobs:
         with:
           DOCKERFILE_PATH: ${{ inputs.PHP_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
+          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
           PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
           TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
           FRONTEND_ROOT: ${{ inputs.FRONTEND_ROOT }}
@@ -156,6 +157,7 @@ jobs:
         with:
           DOCKERFILE_PATH: ${{ inputs.SUPERVISORD_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
+          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
           PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
           TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
           PUSH: "false"
