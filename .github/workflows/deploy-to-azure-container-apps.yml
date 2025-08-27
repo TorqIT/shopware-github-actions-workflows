@@ -16,6 +16,11 @@
 #     secrets:
 #       SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
 #       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
+#       BUILD_TIME_SECRETS: >
+#         {
+#           "pimcore-enterprise-token": "${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}",
+#           ...any other build-time secrets you need
+#         }
 #
 # The GitHub Environments you use with this workflow will need the following variables:
 # - AZURE_TENANT_ID
@@ -78,6 +83,11 @@ on:
         required: false
         type: string
         description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+      BUILD_TIME_ARGS:
+        required: false
+        type: string
+        default: "{}"
+        description: "A JSON object containing Docker build-time args in key: value format"
       NPM_BUILD:
         required: false
         type: boolean
@@ -158,12 +168,15 @@ on:
       SERVICE_PRINCIPAL_PASSWORD:
         required: true
         description: The password for the Service Principal in Azure
+      BUILD_TIME_SECRETS:
+        required: false
+        description: A JSON object of secrets required at build-time (see above for example format)
       PIMCORE_ENTERPRISE_TOKEN:
         required: false
-        description: (Optional) The value of your project's Pimcore Enterprise Token
+        description: (DEPRECATED - use BUILD_TIME_SECRETS instead) The value of your project's Pimcore Enterprise Token
       TORQ_GITHUB_TOKEN:
         required: false
-        description: (Optional) A GitHub access token used to access private GitHub repositories
+        description: (DEPRECATED - use BUILD_TIME_SECRETS instead) A GitHub access token used to access private GitHub repositories
       RECAPTCHA_CLIENT_KEY:
         required: false
         description: (Optional) A client key used when building NPM frontends that require ReCAPTCHA
@@ -248,6 +261,7 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.INIT_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
           PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
+          BUILD_TIME_SECRETS: ${{secrets.BUILD_TIME_SECRETS }}
           PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
           TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
           CACHE_FROM: type=gha
@@ -262,6 +276,7 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.PHP_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
           PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
+          BUILD_TIME_SECRETS: ${{secrets.BUILD_TIME_SECRETS }}
           PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
           TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
           FRONTEND_ROOT: ${{ inputs.FRONTEND_ROOT }}
@@ -280,6 +295,7 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.SUPERVISORD_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
           PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
+          BUILD_TIME_SECRETS: ${{secrets.BUILD_TIME_SECRETS }}
           PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
           TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
           TAGS: |
