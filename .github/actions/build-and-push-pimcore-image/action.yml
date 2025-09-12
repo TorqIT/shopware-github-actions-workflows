@@ -93,6 +93,7 @@ runs:
       run: |
         # If the application supports ReCAPTCHA, ensure the client key is present so that it is available for the constructed SPA HTML file
         export VITE_RECAPTCHA_CLIENT_KEY=${{ inputs.RECAPTCHA_CLIENT_KEY }}
+        export REACT_APP_RECAPTCHA_CLIENT_KEY=${{ inputs.RECAPTCHA_CLIENT_KEY }}
         npm --prefix ${{ inputs.FRONTEND_ROOT }} ci --legacy-peer-deps
         npm --prefix ${{ inputs.FRONTEND_ROOT }} run ${{ inputs.NPM_RUN_CMD }}
         if ${{ inputs.NPM_SPA }}
