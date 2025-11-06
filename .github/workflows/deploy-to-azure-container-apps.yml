@@ -197,13 +197,7 @@ jobs:
       - name: Copy config files required for running with Azure Flysystem
         uses: ./reusable-workflow/.github/actions/azure-flysystem-copy-config
         with:
-          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
-
-      - name: Copy config files required for running with an Azure MySQL server
-        uses: ./reusable-workflow/.github/actions/azure-mysql-copy-config
-        with:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
-          CD_PATH: ${{ inputs.AZURE_CD_PATH }}
 
       - name: Replace local Composer dependencies with their remote counterparts
         uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
