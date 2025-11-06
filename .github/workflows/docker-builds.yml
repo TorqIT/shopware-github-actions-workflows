@@ -5,6 +5,12 @@
 # jobs:
 #   build-images:
 #     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/docker-builds@v8
+#     secrets:
+#        BUILD_TIME_SECRETS: >
+#          {
+#            "shopware-composer-token": "${{ secrets.SHOPWARE_COMPOSER_TOKEN }}",
+#            ...any other build-time secrets you need
+#          }
 #
 # Requires the following permissions to be set in the callig job:
 # permissions:
@@ -26,6 +32,11 @@ on:
         type: boolean
         default: false
         description: "Whether to clone submodules when cloning the project repository"
+      BUILD_TIME_ARGS:
+        required: false
+        type: string
+        default: "{}"
+        description: "A JSON object containing Docker build-time args in key: value format"
       SHOPWARE_ROOT:
         required: false
         type: string
@@ -66,6 +77,9 @@ on:
       SHOPWARE_COMPOSER_TOKEN:
         required: true
         description: The value of your project's Shopware Composer token
+      BUILD_TIME_SECRETS:
+        required: false
+        description: A JSON object of secrets required at build-time (see above for example format)
 
 jobs:
   build-docker-images:
@@ -111,6 +125,8 @@ jobs:
           DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
           DOCKERFILE_PATH: ${{ inputs.INIT_DOCKERFILE }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           PUSH: "false"
 
@@ -120,6 +136,8 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.PHP_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           PUSH: "false"
 
@@ -129,5 +147,7 @@ jobs:
           DOCKERFILE_PATH: ${{ inputs.SUPERVISORD_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           PUSH: "false"

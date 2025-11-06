@@ -29,18 +29,52 @@ inputs:
   SHOPWARE_COMPOSER_TOKEN:
     required: true
     description: "The value of your project's Shopware Composer token"
+  BUILD_TIME_ARGS:
+    required: true
+    description: "(Optional) A JSON object containing a list of args and their values in key: value format"
+  BUILD_TIME_SECRETS:
+    required: true
+    description: "(Optional) A JSON object containing a list of secrets and their values in key: value format"
 
 runs:
   using: "composite"
   steps:
+    - name: Prepare Docker build args
+      id: build-args
+      run: |
+        set -e
+        JSON_INPUT='${{ inputs.BUILD_TIME_ARGS }}'
+        echo "args<<EOF" >> $GITHUB_OUTPUT
+        echo "$JSON_INPUT" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | while IFS='=' read -r key value; do
+          echo "$key=$value" >> $GITHUB_OUTPUT
+        done
+        echo "EOF" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Prepare Docker build secrets
+      id: build-secrets
+      run: |
+        set -e
+        JSON_INPUT='${{ inputs.BUILD_TIME_SECRETS }}'
+        echo "secrets<<EOF" >> $GITHUB_OUTPUT
+        echo "$JSON_INPUT" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | while IFS='=' read -r key value; do
+          echo "::add-mask::$value"   # Mask the value from logs
+          echo "$key=$value" >> $GITHUB_OUTPUT
+        done
+        echo "EOF" >> $GITHUB_OUTPUT
+      shell: bash
+
     - name: Build and push image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ${{ inputs.DOCKERFILE_PATH }}
         target: ${{ inputs.DOCKERFILE_TARGET }}
+        build-args: |
+          ${{ steps.build-args.outputs.args }}
         secrets: |
           shopware-composer-token=${{ inputs.SHOPWARE_COMPOSER_TOKEN }}            
+          ${{ steps.build-secrets.outputs.secrets }}
         push: ${{ fromJSON(inputs.PUSH) }}
         cache-from: ${{ inputs.CACHE_FROM }}
         cache-to: ${{ inputs.CACHE_TO }}

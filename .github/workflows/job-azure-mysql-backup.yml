@@ -3,7 +3,7 @@
 # Invoke this workflow in your project's workflow as follows (example below triggers the workflow once per month):
 # on:
 #   schedule:
-#     - cron: "0 0 1 * *" 
+#     - cron: "0 0 1 * *"
 # jobs:
 #   db-backup:
 #     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-mysql-backup.yml@v8
@@ -51,11 +51,6 @@ on:
       ENVIRONMENT:
         required: true
         type: string
-      AZURE_MARIADB:
-        required: false
-        default: false
-        type: boolean
-        description: Set to true if backing up an Azure MariaDB server instead
 
     secrets:
       SERVICE_PRINCIPAL_ID:
@@ -65,7 +60,7 @@ on:
         required: true
         description: The password for the Service Principal in Azure
       AZURE_MYSQL_PASSWORD:
-        required: true  
+        required: true
         description: The password used to log in to the MySQL server and perform the backup
       SLACK_BACKUPS_WEBHOOK_URL:
         required: true
@@ -100,53 +95,38 @@ jobs:
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
           TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Add temporary network rule for this runner to database server and Storage Account firewalls
         uses: azure/cli@v2
         with:
           inlineScript: |
             set -e
             runnerIp=$(curl ipinfo.io/ip)
-            echo "Adding temporary network rule for this runner ($runnerIp) to database server's firewall..."
-            if [ -n "${{ inputs.AZURE_MARIADB }}" ] && [ "${{ inputs.AZURE_MARIADB }}" == "true" ]; then
-              az mariadb server firewall-rule create \
-                --server-name ${{ vars.AZURE_MYSQL_SERVER }} \
-                --resource-group ${{ vars.RESOURCE_GROUP }} \
-                --name allow-runner-ip \
-                --start-ip-address $runnerIp \
-                --end-ip-address $runnerIp
-            else
-              az mysql flexible-server firewall-rule create \
-                --name ${{ vars.AZURE_MYSQL_SERVER }} \
-                --resource-group ${{ vars.RESOURCE_GROUP }} \
-                --rule-name allow-runner-ip \
-                --start-ip-address $runnerIp \
-                --end-ip-address $runnerIp \
-                --verbose
-            fi
+            echo "Adding temporary network rule for this runner ($runnerIp) to database server's firewall..."            
+            az mysql flexible-server firewall-rule create \
+              --name ${{ vars.AZURE_MYSQL_SERVER }} \
+              --resource-group ${{ vars.RESOURCE_GROUP }} \
+              --rule-name allow-runner-ip \
+              --start-ip-address $runnerIp \
+              --end-ip-address $runnerIp \
+              --verbose
             echo "Adding temporary network rule for this runner ($runnerIp) to Storage Account's firewall..."
             az storage account network-rule add \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --account-name ${{ vars.AZURE_DB_BACKUPS_STORAGE_ACCOUNT }} \
               --ip-address $runnerIp \
               --verbose
+            echo "Sleep for 120 seconds to allow network rule to propagate to Storage Account..."
+            sleep 120
 
       - name: Perform a MySQL dump and save the result to Storage Account
         id: dump
         run: |
           set -e
           fileName=$(date -u +"%Y-%m-%dT%H:%M:%SZ").sql
-          dbHost=$( [ "${{ inputs.AZURE_MARIADB }}" == "true" ] && echo "${{ vars.AZURE_MYSQL_SERVER }}.mariadb.database.azure.com" || echo "${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com" )
-          dbUser=$( [ "${{ inputs.AZURE_MARIADB }}" == "true" ] && echo "${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}@$dbHost" || echo "${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}" )
+          dbHost=$(echo "${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com")
+          dbUser=$(echo "${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}")
           echo Performing database dump...
-          if [ "${{ inputs.AZURE_MARIADB }}" == "true" ]; then
-            MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
-              mysqldump \
-              -h $dbHost \
-              -u $dbUser \
-              ${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }} \
-              > $fileName
-          else
             MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
               mysqldump \
               -h $dbHost \
@@ -154,6 +134,7 @@ jobs:
               --ssl-mode=REQUIRED \
               --ssl-mode=VERIFY_CA \
               --ssl-ca ./reusable-workflow/.azure/config/db/DigiCertGlobalRootCA.crt.pem \
+              --single-transaction --routines --triggers --add-drop-table --disable-keys --extended-insert --no-tablespaces \
               ${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }} \
               > $fileName
           fi               
@@ -166,8 +147,6 @@ jobs:
             exit 1;
           fi
 
-          echo "Sleep for 120 seconds to allow network rule to propagate to Storage Account..."
-          sleep 120
           echo "Uploading dumped file to Storage Account..."
           az storage blob upload \
             --account-name ${{ vars.AZURE_DB_BACKUPS_STORAGE_ACCOUNT }} \
@@ -175,26 +154,18 @@ jobs:
             --name $fileName \
             --file $fileName \
             --auth-mode login
-          
+
       - name: Remove temporary network rule from database server firewall
         if: always()
         uses: azure/cli@v2
         with:
           inlineScript: |
             set -e
-            if [ -n "${{ inputs.AZURE_MARIADB }}" ] && [ "${{ inputs.AZURE_MARIADB }}" == "true" ]; then
-              az mariadb server firewall-rule delete \
-                --server-name ${{ vars.AZURE_MYSQL_SERVER }} \
-                --resource-group ${{ vars.RESOURCE_GROUP }} \
-                --name allow-runner-ip \
-                --yes
-            else
-              az mysql flexible-server firewall-rule delete \
-                --resource-group ${{ vars.RESOURCE_GROUP }} \
-                --name ${{ vars.AZURE_MYSQL_SERVER }} \
-                --rule-name allow-runner-ip \
-                --yes
-            fi
+            az mysql flexible-server firewall-rule delete \
+              --resource-group ${{ vars.RESOURCE_GROUP }} \
+              --name ${{ vars.AZURE_MYSQL_SERVER }} \
+              --rule-name allow-runner-ip \
+              --yes
 
       - name: Remove temporary network rule from Storage Account firewall
         if: always()
@@ -221,4 +192,3 @@ jobs:
                 text:
                   type: "mrkdwn"
                   text: "*Database backup job for ${{ github.repository }}*: ${{ job.status == 'success' && 'Success! :white_check_mark:' || 'Failed :x:' }}\n\nDumped file *${{ steps.dump.outputs.fileName }}* was *${{ steps.dump.outputs.fileSize }}* bytes\n\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          

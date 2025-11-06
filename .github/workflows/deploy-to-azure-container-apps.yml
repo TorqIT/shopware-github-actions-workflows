@@ -16,6 +16,11 @@
 #     secrets:
 #       SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
 #       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
+#       BUILD_TIME_SECRETS: >
+#         {
+#           "shopware-composer-token": "${{ secrets.SHOPWARE_COMPOSER_TOKEN }}",
+#           ...any other build-time secrets you need
+#         }
 #
 # The GitHub Environments you use with this workflow will need the following variables:
 # - AZURE_TENANT_ID
@@ -78,6 +83,11 @@ on:
         required: false
         type: string
         description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
+      BUILD_TIME_ARGS:
+        required: false
+        type: string
+        default: "{}"
+        description: "A JSON object containing Docker build-time args in key: value format"
       SUBMODULES:
         required: false
         type: boolean
@@ -148,6 +158,9 @@ on:
       SHOPWARE_COMPOSER_TOKEN:
         required: true
         description: The value of your project's Shopware Composer token
+      BUILD_TIME_SECRETS:
+        required: false
+        description: A JSON object of secrets required at build-time (see above for example format)
       SLACK_WORKFLOW_STATUS_WEBHOOK_URL:
         required: false
         description: (Optional) Slack webhook URL to send workflow results to
@@ -181,8 +194,8 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
-      - name: Copy config files required for running in Azure
-        uses: ./reusable-workflow/.github/actions/azure-container-apps-copy-config
+      - name: Copy config files required for running with Azure Flysystem
+        uses: ./reusable-workflow/.github/actions/azure-flysystem-copy-config
         with:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           CD_PATH: ${{ inputs.AZURE_CD_PATH }}
@@ -233,6 +246,8 @@ jobs:
           DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           IMAGE: ${{ vars.INIT_IMAGE || 'init' }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           CACHE_FROM: type=gha
           CACHE_TO: type=gha,mode=min
@@ -247,6 +262,8 @@ jobs:
           DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           IMAGE: ${{ vars.PHP_IMAGE || 'php' }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           TAGS: |
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.PHP_IMAGE || 'php' }}:latest,
@@ -259,6 +276,8 @@ jobs:
           DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
           CONTAINER_REGISTRY: ${{ vars.CONTAINER_REGISTRY }}
           IMAGE: ${{ vars.SUPERVISORD_IMAGE || 'supervisord' }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           TAGS: |
             ${{ vars.CONTAINER_REGISTRY }}/${{ vars.SUPERVISORD_IMAGE || 'supervisord' }}:latest,

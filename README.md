@@ -22,10 +22,8 @@ where `workflow-file.yml` refers to the actual workflow file you wish to use, an
 
 ### Environment variables
 
-At present, reusable workflows can access [GitHub Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment) variables (i.e. the `vars` context), and therefore do not need these values to be passed as inputs. However, they cannot yet access environment secrets, so these need to be passed by the caller as demonstrated above.
+At present, reusable workflows can access [GitHub Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment) variables (i.e. the `vars` context). However, they cannot yet access GitHub Environment secrets directly, so these need to be passed by the caller as demonstrated above.
 
 ### Self-hosted runners
 
 All workflows contain an optional `RUNNER` input that will accept the name of a self-hosted runner. If this parameter is not provided, an `ubuntu-latest` GitHub runner will be used.
-
-Per [GitHub's documentation](https://docs.github.com/en/actions/using-workflows/reusing-workflows#using-self-hosted-runners), these workflows can only access self-hosted runners in the [Torq IT organization](https://github.com/torqit). As a workaround, you can fork this repository into your organization in order to utilize your organization's self-hosted runners.
