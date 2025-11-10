@@ -203,15 +203,15 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           CD_PATH: ${{ inputs.AZURE_CD_PATH }}
 
+      - name: Lint files
+        uses: ./reusable-workflow/.github/actions/lint
+
       - name: Replace local Composer dependencies with their remote counterparts
         uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
         with:
           PHP_VERSION: ${{ inputs.PHP_VERSION }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
-
-      - name: Lint files
-        uses: ./reusable-workflow/.github/actions/lint
 
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login
