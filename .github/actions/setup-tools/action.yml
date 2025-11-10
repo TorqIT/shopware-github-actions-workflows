@@ -1,0 +1,16 @@
+name: "Install workflow tools"
+description: "Installs necessary tools for workflows"
+runs: 
+  using: "composite"
+  steps:
+    - name: Install jq
+      uses: dcarbone/install-jq-action@v3
+      with:
+        version: "1.7"
+        force: true
+    
+    - name: Install tools from apt
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y yamllint

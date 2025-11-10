@@ -1,0 +1,22 @@
+name: "Lint all files"
+description: "Lints all files in the repository using predefined linters"
+runs: 
+  using: "composite"
+  steps:
+    - name: Lint YAML files
+      shell: bash
+      run: |
+        echo "Linting YAML files..."
+        for file in $(find . -name '*.yml' -o -name '*.yaml'); do
+          yamllint $file
+        done
+    
+    - name: Lint JSON files
+      shell: bash
+      run: |
+        echo "Linting JSON files..."
+        for file in $(find . -name '*.json'); do
+          jq empty $file
+          done
+
+    # TODO PHP linting, Dockerfile linting, 
