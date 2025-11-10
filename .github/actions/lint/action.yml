@@ -1,5 +1,5 @@
 name: "Lint all files"
-description: "Lints all files in the repository using predefined linters"
+description: "Lints all files in the repository"
 runs: 
   using: "composite"
   steps:
@@ -8,19 +8,16 @@ runs:
       run: |
         errors=0
 
-        find . -name '*.json' \
-          -not -path './.vscode/*' \
-          -print0 | while IFS= read -r -d '' file; do
-            if ! jq empty "$file"; then
-              echo "JSON syntax error in $file"
-              errors=$((errors+1))
-            fi
+        for file in $(find . -name '*.json' -not -path './.vscode/*'); do
+          if ! jq empty "$file"; then
+            echo "JSON syntax error in $file"
+            errors=$((errors+1))
+          fi
         done
 
         if [ $errors -ne 0 ]; then
           echo "$errors JSON files failed linting"
           exit 1
         fi
-
 
     # TODO PHP, YAML, XML, Dockerfile linting...
