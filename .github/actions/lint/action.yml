@@ -6,13 +6,19 @@ runs:
     - name: Lint JSON files
       shell: bash
       run: |
-        echo "Linting JSON files..."
-        find . -name '*.json' -print0 | xargs -0 -n1 -P4 -I{} bash -c '
-          if ! jq empty "{}"; then
-            echo "JSON syntax error in {}"
-            exit 1
-          fi
-        '
+        find . -name '*.json' \
+          -not -path './.vscode/*' \
+          -print0 | while IFS= read -r -d '' file; do
+            if ! jq empty "$file"; then
+              echo "JSON syntax error in $file"
+              errors=$((errors+1))
+            fi
+        done
+
+        if [ $errors -ne 0 ]; then
+          echo "$errors JSON files failed linting"
+          exit 1
+        fi
 
 
     # TODO PHP, YAML, XML, Dockerfile linting...
