@@ -6,6 +6,8 @@ runs:
     - name: Lint JSON files
       shell: bash
       run: |
+        errors=0
+
         find . -name '*.json' \
           -not -path './.vscode/*' \
           -print0 | while IFS= read -r -d '' file; do
