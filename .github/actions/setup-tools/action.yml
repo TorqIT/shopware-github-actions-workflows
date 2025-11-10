@@ -8,9 +8,3 @@ runs:
       with:
         version: "1.7"
         force: true
-    
-    - name: Install tools from apt
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y yamllint
