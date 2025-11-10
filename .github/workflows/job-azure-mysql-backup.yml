@@ -3,7 +3,7 @@
 # Invoke this workflow in your project's workflow as follows (example below triggers the workflow once per month):
 # on:
 #   schedule:
-#     - cron: "0 0 1 * *" 
+#     - cron: "0 0 1 * *"
 # jobs:
 #   db-backup:
 #     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/job-azure-mysql-backup.yml@v7
@@ -60,7 +60,7 @@ on:
         required: true
         description: The password for the Service Principal in Azure
       AZURE_MYSQL_PASSWORD:
-        required: true  
+        required: true
         description: The password used to log in to the MySQL server and perform the backup
       SLACK_BACKUPS_WEBHOOK_URL:
         required: true
@@ -88,6 +88,9 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Setup workflow tools
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login
         with:
@@ -95,7 +98,7 @@ jobs:
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
           TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Add temporary network rule for this runner to database server and Storage Account firewalls
         uses: azure/cli@v2
         with:
@@ -145,7 +148,7 @@ jobs:
           if [ "$fileSize" -le 0 ]; then
             exit 1;
           fi
-          
+
           echo "Uploading dumped file to Storage Account..."
           az storage blob upload \
             --account-name ${{ vars.AZURE_DB_BACKUPS_STORAGE_ACCOUNT }} \
@@ -153,7 +156,7 @@ jobs:
             --name $fileName \
             --file $fileName \
             --auth-mode login
-          
+
       - name: Remove temporary network rule from database server firewall
         if: always()
         uses: azure/cli@v2
@@ -191,4 +194,3 @@ jobs:
                 text:
                   type: "mrkdwn"
                   text: "*Database backup job for ${{ github.repository }}*: ${{ job.status == 'success' && 'Success! :white_check_mark:' || 'Failed :x:' }}\n\nDumped file *${{ steps.dump.outputs.fileName }}* was *${{ steps.dump.outputs.fileSize }}* bytes\n\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          

@@ -3,7 +3,7 @@
 # Invoke this workflow in your project's workflow as follows (example below triggers the workflow once per month):
 # on:
 #   schedule:
-#     - cron: "0 0 1 * *" 
+#     - cron: "0 0 1 * *"
 # jobs:
 #   file-share-backup:
 #     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/job-azure-file-share-backup.yml@v7
@@ -81,6 +81,9 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Setup workflow tools
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login
         with:
@@ -88,7 +91,7 @@ jobs:
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
           TENANT: ${{ vars.AZURE_TENANT_ID }}
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Add temporary network rule for this runner to Storage Account firewall
         uses: azure/cli@v2
         with:
@@ -136,4 +139,3 @@ jobs:
                 text:
                   type: "mrkdwn"
                   text: "*Azure NFS File Share backup job for ${{ github.repository }}*: ${{ job.status == 'success' && 'Success! :white_check_mark:' || 'Failed :x:' }}\n\nSnapshot *${{ steps.snapshot.outputs.snapshotName }}* created\n\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
