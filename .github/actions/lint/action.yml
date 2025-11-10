@@ -7,7 +7,12 @@ runs:
       shell: bash
       run: |
         echo "Linting JSON files..."
-        # find + xargs safely handles spaces in filenames
-        find . -name '*.json' -print0 | xargs -0 -n1 -P4 -I{} bash -c 'jq empty "{}" || echo "JSON syntax error in {}"'
+        find . -name '*.json' -print0 | xargs -0 -n1 -P4 -I{} bash -c '
+          if ! jq empty "{}"; then
+            echo "JSON syntax error in {}"
+            exit 1
+          fi
+        '
+
 
     # TODO PHP, YAML, XML, Dockerfile linting...
