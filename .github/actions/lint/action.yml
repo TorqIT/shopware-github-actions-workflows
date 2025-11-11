@@ -17,7 +17,7 @@ runs:
         done
 
         if [ $errors -ne 0 ]; then
-          echo "$errors JSON files failed linting"
+          echo "$errors JSON files found with syntax errors"
           exit 1
         else
           echo "No JSON syntax errors found"
@@ -37,7 +37,7 @@ runs:
         done
 
         if [ $errors -ne 0 ]; then
-          echo "$errors PHP files failed linting"
+          echo "$errors PHP files found with syntax errors"
           exit 1
         else
           echo "No PHP syntax errors found"
