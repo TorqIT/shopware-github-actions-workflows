@@ -11,7 +11,8 @@ runs:
         for file in $(find . -name '*.json' -not -path './.vscode/*'); do
           if ! output=$(jq empty "$file" 2>&1); then
             echo "JSON syntax error in $file:"
-            echo "  $output"
+            echo "$output"
+            echo "---"
             errors=$((errors+1))
           fi
         done
