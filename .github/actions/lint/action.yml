@@ -9,8 +9,10 @@ runs:
         errors=0
 
         for file in $(find . -name '*.json' -not -path './.vscode/*'); do
-          if ! jq empty "$file"; then
-            echo "JSON syntax error in $file"
+          if ! output=$(jq empty "$file" 2>&1); then
+            echo "JSON syntax error in $file:"
+            echo "$output"
+            echo "---"
             errors=$((errors+1))
           fi
         done
@@ -26,8 +28,10 @@ runs:
         errors=0
 
         for file in $(find . -name '*.php' -not -path './vendor/*'); do
-          if ! php -l "$file" > /dev/null 2>&1; then
-            echo "PHP syntax error in $file"
+          if ! output=$(php -l "$file" 2>&1); then
+            echo "PHP syntax error in $file:"
+            echo "$output"
+            echo "---"
             errors=$((errors+1))
           fi
         done
