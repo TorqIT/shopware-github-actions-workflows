@@ -33,7 +33,7 @@ runs:
           echo "Checking $dockerfile_path for PHP version..."
           version=$(grep -Eio '(php[:-])?[0-9]+\.[0-9]+' "$dockerfile_path" | head -1 | grep -Eo '[0-9]+\.[0-9]+') || true
           if [ -n "$version" ]; then
-            echo "Found PHP version: $version"
+            echo "Found PHP version $version in $dockerfile_path"
           else
             echo "No PHP version found in $dockerfile_path"
           fi
