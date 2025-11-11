@@ -20,6 +20,8 @@ runs:
         if [ $errors -ne 0 ]; then
           echo "$errors JSON files failed linting"
           exit 1
+        else
+          echo "No JSON syntax errors found"
         fi
 
     - name: Lint PHP files
@@ -39,6 +41,8 @@ runs:
         if [ $errors -ne 0 ]; then
           echo "$errors PHP files failed linting"
           exit 1
+        else
+          echo "No PHP syntax errors found"
         fi
 
     # TODO PHP, YAML, XML, Dockerfile linting...
