@@ -4,12 +4,6 @@ description: "Installs necessary tools for workflows"
 runs: 
   using: "composite"
   steps:
-    - name: Install tools with apt-get
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xmllint
-
     - name: Install jq
       uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
       with:

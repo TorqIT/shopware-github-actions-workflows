@@ -51,8 +51,8 @@ runs:
         errors=0
 
         for file in $(find . -name '*.xml'); do
-          if ! output=$(xmllint --noout "$file" 2>&1); then
-            echo "XML syntax error in $file:"
+          if ! output=$(python3 -c "import xml.etree.ElementTree as ET; ET.parse('$file')" >/dev/null 2>&1); then
+            echo "XML syntax error in $file"
             echo "$output"
             echo "---"
             errors=$((errors+1))
