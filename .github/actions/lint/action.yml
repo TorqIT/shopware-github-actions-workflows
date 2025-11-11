@@ -45,4 +45,25 @@ runs:
           echo "No PHP syntax errors found"
         fi
 
+    - name: Lint XML files
+      shell: bash
+      run: |
+        errors=0
+
+        for file in $(find . -name '*.xml'); do
+          if ! output=$(xmllint --noout "$file" 2>&1); then
+            echo "XML syntax error in $file:"
+            echo "$output"
+            echo "---"
+            errors=$((errors+1))
+          fi
+        done
+
+        if [ $errors -ne 0 ]; then
+          echo "$errors XML files found with syntax errors"
+          exit 1
+        else
+          echo "No XML syntax errors found"
+        fi
+
     # TODO PHP, YAML, XML, Dockerfile linting...
