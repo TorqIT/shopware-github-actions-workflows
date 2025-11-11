@@ -97,11 +97,6 @@ on:
         required: false
         type: string
         description: "(Optional) path (relative to the project's root) containing config files to be copied when running deployment. Will be copied from $AZURE_CD_PATH/config/* to $SHOPWARE_ROOT/config/*"
-      PHP_VERSION:
-        required: false
-        type: string
-        default: "8.3"
-        description: "PHP version to use when running Composer directly"
       SHOPWARE_ROOT:
         required: false
         type: string
@@ -209,7 +204,6 @@ jobs:
       - name: Replace local Composer dependencies with their remote counterparts
         uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
         with:
-          PHP_VERSION: ${{ inputs.PHP_VERSION }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 

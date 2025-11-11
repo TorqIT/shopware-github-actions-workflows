@@ -115,7 +115,6 @@ jobs:
       - name: Replace local Composer dependencies with their remote counterparts
         uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
         with:
-          PHP_VERSION: ${{ inputs.PHP_VERSION }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
