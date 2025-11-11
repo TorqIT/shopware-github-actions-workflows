@@ -6,41 +6,40 @@ runs:
     - name: Lint JSON files
       shell: bash
       run: |
-        errors=0
+        jsonErrors=0
 
         for file in $(find . -name '*.json' -not -path './.vscode/*'); do
           if ! output=$(jq empty "$file" 2>&1); then
             echo "$output"
             echo "---"
-            errors=$((errors+1))
+            jsonErrors=$((jsonErrors+1))
           fi
         done
 
-        if [ $errors -ne 0 ]; then
-          echo "$errors JSON files failed linting"
-          exit 1
+        if [ $jsonErrors -ne 0 ]; then
+          echo "$jsonErrors JSON files failed linting"
         else
           echo "No JSON syntax errors found"
         fi
 
-    - name: Lint PHP files
-      shell: bash
-      run: |
-        errors=0
+        phpErrors=0
 
         for file in $(find . -name '*.php' -not -path './vendor/*'); do
           if ! output=$(php -l "$file" 2>&1); then
             echo "$output"
             echo "---"
-            errors=$((errors+1))
+            phpErrors=$((phpErrors+1))
           fi
         done
 
-        if [ $errors -ne 0 ]; then
-          echo "$errors PHP files failed linting"
-          exit 1
+        if [ $phpErrors -ne 0 ]; then
+          echo "$phpErrors PHP files failed linting"
         else
           echo "No PHP syntax errors found"
+        fi
+
+        if [ $jsonErrors -ne 0 ] || [ $phpErrors -ne 0 ]; then
+          exit 1
         fi
 
     # TODO PHP, YAML, XML, Dockerfile linting...
