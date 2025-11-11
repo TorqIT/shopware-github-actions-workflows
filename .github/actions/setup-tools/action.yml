@@ -15,24 +15,32 @@ runs:
       shell: bash
       run: |
         set -e
+
         version=""
         
-        # Try to detect PHP version in Dockerfile
+        # Try to detect PHP version from Dockerfile
         dockerfile_path=""
         if [ -f .docker/Dockerfile ]; then
           dockerfile_path=".docker/Dockerfile"
         elif [ -f docker/Dockerfile ]; then
           dockerfile_path="docker/Dockerfile"
+        elif [ -f docker/php-fpm/Dockerfile ]; then
+          dockerfile_path="docker/php-fpm/Dockerfile"
+        elif [ -f docker/php/Dockerfile ]; then
+          dockerfile_path="docker/php/Dockerfile"
         fi
         if [ -n "$dockerfile_path" ]; then
-          echo "Checking $dockerfile_path..."
-          version=$(grep -Eio '(php)?[0-9]+\.[0-9]+' "$dockerfile_path" | head -1) || true
-          # Strip optional leading "php"
-          version=${version#php}
+          echo "Checking $dockerfile_path for PHP version..."
+          version=$(grep -Eio '(php[:-])?[0-9]+\.[0-9]+' "$dockerfile_path" | head -1 | grep -Eo '[0-9]+\.[0-9]+') || true
+          if [ -n "$version" ]; then
+            echo "Found PHP version: $version"
+          else
+            echo "No PHP version found in $dockerfile_path"
+          fi
         fi
 
         # Fallback to default if version could not be found in Dockerfile
-        version=${version:-8.2}
+        version=${version:-8.4}
 
         echo "Using PHP version: $version"
         echo "version=$version" >> "$GITHUB_OUTPUT"
