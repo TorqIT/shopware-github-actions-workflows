@@ -20,4 +20,21 @@ runs:
           exit 1
         fi
 
+    - name: Lint PHP files
+      shell: bash
+      run: |
+        errors=0
+
+        for file in $(find . -name '*.php' -not -path './vendor/*'); do
+          if ! php -l "$file" > /dev/null 2>&1; then
+            echo "PHP syntax error in $file"
+            errors=$((errors+1))
+          fi
+        done
+
+        if [ $errors -ne 0 ]; then
+          echo "$errors PHP files failed linting"
+          exit 1
+        fi
+
     # TODO PHP, YAML, XML, Dockerfile linting...

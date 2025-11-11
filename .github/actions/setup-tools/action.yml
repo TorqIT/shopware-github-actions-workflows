@@ -1,10 +1,35 @@
 name: "Install workflow tools"
 description: "Installs necessary tools for workflows"
+
 runs: 
   using: "composite"
   steps:
     - name: Install jq
-      uses: dcarbone/install-jq-action@v3
+      uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
       with:
         version: "1.7"
         force: true
+
+    - name: Detect PHP version
+      id: detect-php-version
+      shell: bash
+      run: |
+        set -e
+        version=""
+        
+        # Try to detect PHP version in Dockerfile
+        if [ -f .docker/Dockerfile ] || [ -f .docker/Dockerfile ]; then
+          echo "Checking Dockerfile..."
+          version=$(grep -Eio 'php:? ?[0-9]+\.[0-9]+' .docker/Dockerfile | head -1 | grep -Eo '[0-9]+\.[0-9]+') || true
+        fi
+
+        # Fallback to default if one could not be found
+        version=${version:-8.2}
+
+        echo "Using PHP version: $version"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ steps.detect-php-version.outputs.version }}
