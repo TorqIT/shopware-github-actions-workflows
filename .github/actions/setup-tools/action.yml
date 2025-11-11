@@ -18,12 +18,18 @@ runs:
         version=""
         
         # Try to detect PHP version in Dockerfile
-        if [ -f .docker/Dockerfile ] || [ -f .docker/Dockerfile ]; then
-          echo "Checking Dockerfile..."
-          version=$(grep -Eio 'php:? ?[0-9]+\.[0-9]+' .docker/Dockerfile | head -1 | grep -Eo '[0-9]+\.[0-9]+') || true
+        dockerfile_path=""
+        if [ -f .docker/Dockerfile ]; then
+          dockerfile_path=".docker/Dockerfile"
+        elif [ -f docker/Dockerfile ]; then
+          dockerfile_path="docker/Dockerfile"
+        fi
+        if [ -n "$dockerfile_path" ]; then
+          echo "Checking $dockerfile_path..."
+          version=$(grep -Eio 'php:? ?[0-9]+\\.[0-9]+' "$dockerfile_path" | head -1 | grep -Eo '[0-9]+\\.[0-9]+') || true
         fi
 
-        # Fallback to default if one could not be found
+        # Fallback to default if version could not be found in Dockerfile
         version=${version:-8.2}
 
         echo "Using PHP version: $version"
