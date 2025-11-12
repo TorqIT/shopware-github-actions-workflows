@@ -42,6 +42,11 @@ on:
         required: true
         type: string
         description: Self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+      SKIP_LINTING:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether linting should be skipped"
       NPM_BUILD:
         required: false
         type: boolean
@@ -229,6 +234,13 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Install workflow tools
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
+      - name: Lint all files
+        if: ${{ inputs.SKIP_LINTING == false }}
+        uses: ./reusable-workflow/.github/actions/lint
+
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
         with:
@@ -328,9 +340,6 @@ jobs:
 
       - name: Install workflow tools
         uses: ./reusable-workflow/.github/actions/setup-tools
-
-      - name: Lint all files
-        uses: ./reusable-workflow/.github/actions/lint
 
       - name: Log in to Container Registry ${{ inputs.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
