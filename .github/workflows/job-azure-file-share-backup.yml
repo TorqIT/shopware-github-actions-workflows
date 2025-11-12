@@ -81,9 +81,6 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
-      - name: Setup workflow tools
-        uses: ./reusable-workflow/.github/actions/setup-tools
-
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login
         with:

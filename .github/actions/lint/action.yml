@@ -24,6 +24,9 @@ runs:
           echo "No JSON syntax errors found"
         fi
 
+    - name: Setup PHP
+      uses: ./.github/actions/setup-php
+
     - name: Lint PHP files
       shell: bash
       run: |

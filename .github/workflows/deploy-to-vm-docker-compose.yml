@@ -338,9 +338,6 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
-      - name: Install workflow tools
-        uses: ./reusable-workflow/.github/actions/setup-tools
-
       - name: Log in to Container Registry ${{ inputs.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
         with:

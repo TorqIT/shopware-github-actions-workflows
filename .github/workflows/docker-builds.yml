@@ -137,9 +137,6 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
-      - name: Setup workflow tools
-        uses: ./reusable-workflow/.github/actions/setup-tools
-
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
 
