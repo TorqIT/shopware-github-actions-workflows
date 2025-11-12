@@ -51,6 +51,7 @@ runs:
         errors=0
 
         for file in $(find . -name '*.xml'); do
+          # Opted to use Python for XML linting as 'xmllint' is not available by default on GitHub runners and would require a slow installation step
           if ! output=$(python3 -c "import xml.etree.ElementTree as ET; ET.parse('$file')" >/dev/null 2>&1); then
             echo "XML syntax error in $file"
             echo "$output"
