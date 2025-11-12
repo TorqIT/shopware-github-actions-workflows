@@ -3,11 +3,6 @@ description: "Lints all files in the repository"
 runs: 
   using: "composite"
   steps:
-    - name: Install jq
-      uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
-      with:
-        version: "1.7"
-
     - name: Lint JSON files
       shell: bash
       run: |
@@ -28,9 +23,6 @@ runs:
         else
           echo "No JSON syntax errors found"
         fi
-
-    - name: Setup PHP
-      uses: ./.github/actions/setup-php
 
     - name: Lint PHP files
       shell: bash

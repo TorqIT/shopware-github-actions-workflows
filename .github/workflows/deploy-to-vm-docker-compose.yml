@@ -240,6 +240,9 @@ jobs:
         with:
           PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
 
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
       - name: Lint all files
         if: ${{ inputs.SKIP_LINTING == false }}
         uses: ./reusable-workflow/.github/actions/lint

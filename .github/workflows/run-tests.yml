@@ -58,6 +58,9 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
       - name: Build test container
         run: |
           PHP_DOCKERFILE=${{ inputs.PHP_DOCKERFILE }} PHP_DOCKERFILE_TARGET=${{ inputs.PHP_DOCKERFILE_TARGET }} docker compose -f ./reusable-workflow/scripts/run-tests/docker-compose.yml build tests
