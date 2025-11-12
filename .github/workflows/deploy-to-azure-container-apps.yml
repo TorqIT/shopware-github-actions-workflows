@@ -82,7 +82,12 @@ on:
       RUNNER:
         required: false
         type: string
-        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+      SKIP_LINTING:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether linting should be skipped"
       BUILD_TIME_ARGS:
         required: false
         type: string
@@ -199,6 +204,7 @@ jobs:
           CD_PATH: ${{ inputs.AZURE_CD_PATH }}
 
       - name: Lint files
+        if: ${{ inputs.SKIP_LINTING == false }}
         uses: ./reusable-workflow/.github/actions/lint
 
       - name: Replace local Composer dependencies with their remote counterparts
