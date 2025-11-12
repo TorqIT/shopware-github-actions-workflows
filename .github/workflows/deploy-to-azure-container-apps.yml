@@ -194,7 +194,7 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
-      - name: Setup workflow tools
+      - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
 
       - name: Copy config files required for running with Azure Flysystem
@@ -335,6 +335,9 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login
         with:
@@ -378,6 +381,9 @@ jobs:
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
 
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login

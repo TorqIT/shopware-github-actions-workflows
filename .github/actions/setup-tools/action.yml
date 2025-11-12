@@ -1,5 +1,5 @@
-name: "Install workflow tools"
-description: "Installs necessary tools for workflows"
+name: "Install tools"
+description: "Installs tools required by workflows and actions"
 
 runs: 
   using: "composite"
@@ -8,10 +8,9 @@ runs:
       uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
       with:
         version: "1.7"
-        force: true
 
-    - name: Detect PHP version
-      id: detect-php-version
+    - name: Determine PHP version
+      id: get-php-version
       shell: bash
       run: |
         set -e
@@ -48,4 +47,4 @@ runs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ steps.detect-php-version.outputs.version }}
+        php-version: ${{ steps.get-php-version.outputs.version }}

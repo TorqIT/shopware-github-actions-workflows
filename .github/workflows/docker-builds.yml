@@ -109,7 +109,7 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
-      - name: Setup workflow tools
+      - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
 
       - name: Replace local Composer dependencies with their remote counterparts
