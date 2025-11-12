@@ -4,10 +4,12 @@ runs:
   using: "composite"
   steps:
     - name: Lint JSON files
+      id: lint-json
       shell: bash
+      continue-on-error: true
       run: |
+        set -e
         errors=0
-
         for file in $(find . -name '*.json' -not -path './.vscode/*'); do
           if ! output=$(jq empty "$file" 2>&1); then
             echo "JSON syntax error in $file:"
@@ -16,19 +18,20 @@ runs:
             errors=$((errors+1))
           fi
         done
-
+        echo "errors=$errors" >> $GITHUB_OUTPUT
         if [ $errors -ne 0 ]; then
           echo "$errors JSON files found with syntax errors"
-          exit 1
         else
           echo "No JSON syntax errors found"
         fi
 
     - name: Lint PHP files
+      id: lint-php
       shell: bash
+      continue-on-error: true
       run: |
+        set -e
         errors=0
-
         for file in $(find . -name '*.php' -not -path './vendor/*'); do
           if ! output=$(php -l "$file" 2>&1); then
             echo "PHP syntax error in $file:"
@@ -37,34 +40,49 @@ runs:
             errors=$((errors+1))
           fi
         done
-
+        echo "errors=$errors" >> $GITHUB_OUTPUT
         if [ $errors -ne 0 ]; then
           echo "$errors PHP files found with syntax errors"
-          exit 1
         else
           echo "No PHP syntax errors found"
         fi
 
     - name: Lint XML files
+      id: lint-xml
       shell: bash
+      continue-on-error: true
       run: |
+        set -e
         errors=0
-
         for file in $(find . -name '*.xml'); do
           # Opted to use Python for XML linting as 'xmllint' is not available by default on GitHub runners and would require a slow installation step
-          if ! output=$(python3 -c "import xml.etree.ElementTree as ET; ET.parse('$file')" >/dev/null 2>&1); then
-            echo "XML syntax error in $file"
+          if ! output=$(python3 -c "import xml.etree.ElementTree as ET; ET.parse('$file')" 2>&1); then
+            echo "XML syntax error in $file:"
             echo "$output"
             echo "---"
             errors=$((errors+1))
           fi
         done
-
+        echo "errors=$errors" >> $GITHUB_OUTPUT
         if [ $errors -ne 0 ]; then
           echo "$errors XML files found with syntax errors"
-          exit 1
         else
           echo "No XML syntax errors found"
+        fi
+
+    - name: Report linting results
+      id: report
+      shell: bash
+      run: |
+        json_errors=${{ steps.lint-json.outputs.errors }}
+        php_errors=${{ steps.lint-php.outputs.errors }}
+        xml_errors=${{ steps.lint-xml.outputs.errors }}
+        total_errors=$((json_errors + php_errors + xml_errors))
+        if [ $total_errors -ne 0 ]; then
+          echo "Linting failed with $total_errors total errors"
+          exit 1
+        else
+          echo "All linting checks passed successfully"
         fi
 
     # TODO YAML, Dockerfile, JS linting...
