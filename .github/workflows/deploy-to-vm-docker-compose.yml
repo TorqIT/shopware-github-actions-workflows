@@ -319,6 +319,11 @@ jobs:
             ${{ inputs.ENV_FILE }}
           sparse-checkout-cone-mode: false
 
+      - name: Install jq
+        uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
+        with:
+          version: "1.7"
+
       - name: Log in to Container Registry ${{ inputs.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
         with:
