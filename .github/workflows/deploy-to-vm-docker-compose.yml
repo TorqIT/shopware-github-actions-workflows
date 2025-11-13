@@ -42,6 +42,11 @@ on:
         required: true
         type: string
         description: Self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+      SKIP_LINTING:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether linting should be skipped"
       NPM_BUILD:
         required: false
         type: boolean
@@ -229,18 +234,25 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Copy config files required for running with an Azure MySQL server
+        uses: ./reusable-workflow/.github/actions/azure-mysql-copy-config
+        if: ${{ inputs.AZURE_MYSQL }}
+        with:
+          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
+      - name: Lint all files
+        if: ${{ inputs.SKIP_LINTING == false }}
+        uses: ./reusable-workflow/.github/actions/lint
+
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
         with:
           CONTAINER_REGISTRY: ${{ inputs.CONTAINER_REGISTRY }}
           CONTAINER_REGISTRY_USERNAME: ${{ inputs.CONTAINER_REGISTRY_USERNAME }}
           CONTAINER_REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD || secrets.CALLER_GITHUB_TOKEN }}
-
-      - name: Copy config files required for running with an Azure MySQL server
-        uses: ./reusable-workflow/.github/actions/azure-mysql-copy-config
-        if: ${{ inputs.AZURE_MYSQL }}
-        with:
-          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
 
       - name: Build and push init image
         uses: ./reusable-workflow/.github/actions/build-and-push-pimcore-image
@@ -310,18 +322,28 @@ jobs:
       - name: Add pipx to PATH
         run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/pimcore-github-actions-workflows
+          file-name: deploy-to-vm-docker-compose.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/pimcore-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
       - name: Log in to Container Registry ${{ inputs.CONTAINER_REGISTRY }}
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.CONTAINER_REGISTRY }}
           username: ${{ inputs.CONTAINER_REGISTRY_USERNAME }}
           password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD || secrets.CALLER_GITHUB_TOKEN }}
-
-      - name: Setup jq
-        uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
-        with:
-          version: "1.7"
-          force: true
 
       - name: Add run-time secrets to .env file
         if: ${{ inputs.RUN_TIME_SECRETS_AS_ENV_VARS }}

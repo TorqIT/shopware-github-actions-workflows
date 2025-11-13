@@ -17,12 +17,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup jq for constructing JSON
-      uses: dcarbone/install-jq-action@v3
-      with:
-        version: '1.7'
-        force: true
-
     - name: Build Azure credentials JSON object
       shell: bash
       id: build-creds
