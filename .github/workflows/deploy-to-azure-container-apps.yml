@@ -82,7 +82,12 @@ on:
       RUNNER:
         required: false
         type: string
-        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+      SKIP_LINTING:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether linting should be skipped"
       BUILD_TIME_ARGS:
         required: false
         type: string
@@ -97,11 +102,6 @@ on:
         required: false
         type: string
         description: "(Optional) path (relative to the project's root) containing config files to be copied when running deployment. Will be copied from $AZURE_CD_PATH/config/* to $SHOPWARE_ROOT/config/*"
-      PHP_VERSION:
-        required: false
-        type: string
-        default: "8.3"
-        description: "PHP version to use when running Composer directly"
       SHOPWARE_ROOT:
         required: false
         type: string
@@ -194,16 +194,22 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
       - name: Copy config files required for running with Azure Flysystem
         uses: ./reusable-workflow/.github/actions/azure-flysystem-copy-config
         with:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           CD_PATH: ${{ inputs.AZURE_CD_PATH }}
 
+      - name: Lint files
+        if: ${{ inputs.SKIP_LINTING == false }}
+        uses: ./reusable-workflow/.github/actions/lint
+
       - name: Replace local Composer dependencies with their remote counterparts
         uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
         with:
-          PHP_VERSION: ${{ inputs.PHP_VERSION }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
@@ -329,6 +335,9 @@ jobs:
           path: reusable-workflow
           fetch-depth: 1
 
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login
         with:
@@ -372,6 +381,9 @@ jobs:
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
 
       - name: Log in to Azure
         uses: ./reusable-workflow/.github/actions/azure-login
