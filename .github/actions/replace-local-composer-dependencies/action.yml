@@ -16,7 +16,7 @@ runs:
       run: |
         cd ${{ github.workspace }}/${{ inputs.SHOPWARE_ROOT }}
         composer config --global --auth bearer.packages.shopware.com "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
-        packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version + " --no-scripts"' composer.lock)
+        packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version + " --no-install --no-scripts"' composer.lock)
         IFS=$'\n'
         for package in $packages
         do
