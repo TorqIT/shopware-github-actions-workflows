@@ -10,7 +10,7 @@ runs:
       run: |
         set -e
         errors=0
-        for file in $(find . -name '*.json' -not -path './.vscode/*'); do
+        find . -name '*.json' -not -path './.vscode/*' -print0 | while IFS= read -r -d '' file; do
           if ! output=$(jq empty "$file" 2>&1); then
             echo "JSON syntax error in $file:"
             echo "$output"
