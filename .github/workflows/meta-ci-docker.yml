@@ -15,6 +15,7 @@ jobs:
     with:
       PROJECT_REPOSITORY: TorqIT/shopware-skeleton
       PROJECT_REPOSITORY_REF: main
+      SHOPWARE_ROOT: src
     secrets:
       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
       PROJECT_REPOSITORY_DEPLOY_KEY: ${{ secrets.SHOPWARE_SKELETON_DEPLOY_KEY }}
