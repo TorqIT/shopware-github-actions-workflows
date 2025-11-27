@@ -13,8 +13,13 @@
 #       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 #       BUILD_TIME_SECRETS: >
 #         {
-#            "MY_SECRET_ENV_VAR": "${{ secrets.MY_SECRET_ENV_VAR }}",
+#            "my-secret": "${{ secrets.MY_SECRET }}",
 #            ...any other build-time secrets you need
+#         }
+#       RUN_TIME_SECRETS: >
+#         {
+#            "my-secret": "${{ secrets.MY_SECRET }}",
+#            ...any other run-time secrets you need
 #         }
 #
 
@@ -105,6 +110,9 @@ on:
       BUILD_TIME_SECRETS:
         required: false
         description: A JSON object of secrets required at build-time (see above for example format)
+      RUN_TIME_SECRETS:
+        required: false
+        description: A JSON object of secrets required at run-time (see above for example format)
       PROJECT_REPOSITORY_DEPLOY_KEY:
         required: false
         description: "An optional SSH deploy key to use when checking out the project repository"
