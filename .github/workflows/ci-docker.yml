@@ -100,7 +100,7 @@ jobs:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Shopware project repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
@@ -134,11 +134,12 @@ jobs:
     name: Build init image
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
-      - name: Checkout repository
+      - name: Checkout Shopware project repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
@@ -184,11 +185,12 @@ jobs:
     name: Build PHP image
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
-      - name: Checkout repository
+      - name: Checkout Shopware project repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
@@ -234,11 +236,12 @@ jobs:
     name: Build supervisord image
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
-      - name: Checkout repository
+      - name: Checkout Shopware project repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
