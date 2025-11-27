@@ -18,6 +18,9 @@ inputs:
     required: false
     description: 'A JSON object containing a list of run-time secrets in key: value format'
     default: '{}'
+  SHOPWARE_COMPOSER_TOKEN:
+    description: 'Shopware Composer token for private repository access'
+    required: true
   HOSTNAME:
     description: 'Hostname to add to /etc/hosts'
     required: false
@@ -41,23 +44,14 @@ runs:
       shell: bash
       run: mkdir -p .secrets
 
-    - name: Combine and populate secrets
+    - name: Create Shopware Composer token secret file
       shell: bash
       run: |
-        set -e
-        
-        BUILD_SECRETS='${{ inputs.BUILD_TIME_SECRETS }}'
-        RUNTIME_SECRETS='${{ inputs.RUN_TIME_SECRETS }}'
-        
-        # Combine both JSON objects and remove duplicates (runtime takes precedence)
-        COMBINED_SECRETS=$(echo "$BUILD_SECRETS $RUNTIME_SECRETS" | jq -s '.[0] * .[1]')
-        
-        # Create secret files
-        echo "$COMBINED_SECRETS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | while IFS='=' read -r key value; do
-          echo "::add-mask::$value"
-          echo -n "$value" > ".secrets/$key"
-          echo "Created secret file: .secrets/$key"
-        done
+        echo "::add-mask::${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
+        echo -n "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}" > .secrets/shopware_composer_token
+        echo "Created secret file: .secrets/shopware_composer_token"
+
+    # TODO build-time and run-time secret handling
 
     - name: Start Docker containers
       shell: bash

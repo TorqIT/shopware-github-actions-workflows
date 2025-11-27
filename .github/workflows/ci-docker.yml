@@ -344,6 +344,7 @@ jobs:
         with:
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           RUN_TIME_SECRETS: ${{ secrets.RUN_TIME_SECRETS }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           NODE_VERSION: ${{ inputs.NODE_VERSION }}
           TESTS_DIRECTORY: "${{ inputs.E2E_TESTS_DIRECTORY }}"
           HOSTNAME: "${{ inputs.E2E_TESTS_HOSTNAME }}"
