@@ -60,7 +60,7 @@ runs:
         JSON_INPUT='${{ inputs.RUN_TIME_SECRETS }}'
         echo "$JSON_INPUT" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | while IFS='=' read -r key value; do
           echo "::add-mask::$value"
-          echo "$key=$value" >> .secrets/$key
+          echo "$value" >> .secrets/$key
         done
       shell: bash
 
