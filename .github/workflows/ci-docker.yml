@@ -179,7 +179,6 @@ jobs:
         with:
           DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
           DOCKERFILE_PATH: ${{ inputs.INIT_DOCKERFILE }}
-          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
@@ -234,7 +233,6 @@ jobs:
         with:
           DOCKERFILE_PATH: ${{ inputs.PHP_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
-          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
@@ -289,7 +287,6 @@ jobs:
         with:
           DOCKERFILE_PATH: ${{ inputs.SUPERVISORD_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
-          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
