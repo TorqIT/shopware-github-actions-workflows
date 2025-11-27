@@ -103,7 +103,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
+          repository: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY != '' && format('git@github.com:%s.git', inputs.PROJECT_REPOSITORY) || inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY || '' }}
           ssh-known-hosts: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY && 'github.com' || '' }}
