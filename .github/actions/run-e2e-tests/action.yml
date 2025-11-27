@@ -54,7 +54,7 @@ runs:
 
     - name: Start Docker containers
       shell: bash
-      run: docker compose up -d
+      run: docker compose up init php -d
 
     - name: Get PHP port from .env
       id: get-port
