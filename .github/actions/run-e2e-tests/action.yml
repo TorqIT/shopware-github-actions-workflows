@@ -1,0 +1,128 @@
+name: Run e2e Tests
+description: Runs end-to-end tests
+
+inputs:
+  TESTS_DIRECTORY:
+    description: 'Path to e2e test files'
+    required: false
+    default: 'e2e/*'
+  NODE_VERSION:
+    description: 'Node.js version to use'
+    required: false
+    default: '20'
+  BUILD_TIME_SECRETS:
+    required: false
+    description: 'A JSON object containing a list of build-time secrets in key: value format'
+    default: '{}'
+  RUN_TIME_SECRETS:
+    required: false
+    description: 'A JSON object containing a list of run-time secrets in key: value format'
+    default: '{}'
+  HOSTNAME:
+    description: 'Hostname to add to /etc/hosts'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.TESTS_DIRECTORY }}/package-lock.json
+
+    - name: Add host entry
+      shell: bash
+      if: inputs.HOSTNAME != ''
+      run: echo "127.0.0.1 ${{ inputs.HOSTNAME }}" | sudo tee -a /etc/hosts
+
+    - name: Prepare secrets directory
+      shell: bash
+      run: mkdir -p .secrets
+
+    - name: Combine and populate secrets
+      shell: bash
+      run: |
+        set -e
+        
+        BUILD_SECRETS='${{ inputs.BUILD_TIME_SECRETS }}'
+        RUNTIME_SECRETS='${{ inputs.RUN_TIME_SECRETS }}'
+        
+        # Combine both JSON objects and remove duplicates (runtime takes precedence)
+        COMBINED_SECRETS=$(echo "$BUILD_SECRETS $RUNTIME_SECRETS" | jq -s '.[0] * .[1]')
+        
+        # Create secret files
+        echo "$COMBINED_SECRETS" | jq -r 'to_entries[] | "\(.key)=\(.value)"' | while IFS='=' read -r key value; do
+          echo "::add-mask::$value"
+          echo -n "$value" > ".secrets/$key"
+          echo "Created secret file: .secrets/$key"
+        done
+
+    - name: Start Docker containers
+      shell: bash
+      run: docker-compose up -d
+
+    - name: Get PHP port from .env
+      id: get-port
+      shell: bash
+      run: |
+        if [ -f .env ]; then
+          phpPort=$(grep "^WEB_PORT_EXTERNAL=" .env | cut -d'=' -f2)
+          echo "phpPort=$phpPort" >> $GITHUB_OUTPUT
+          echo "Using PHP port: $phpPort"
+        else
+          echo "::error::.env file not found"
+          exit 1
+        fi
+
+    - name: Wait for services to be ready
+      shell: bash
+      run: |
+        echo "Waiting for PHP container to be ready..."
+
+        phpPort=${{ steps.get-port.outputs.phpPort }}
+        max_attempts=30
+        attempt=0
+        
+        while [ $attempt -lt $max_attempts ]; do
+          if wget --spider --quiet http://127.0.0.1:$phpPort; then
+            echo "PHP container is ready!"
+            exit 0
+          fi
+          
+          attempt=$((attempt + 1))
+          echo "Attempt $attempt/$max_attempts - PHP container not ready yet, waiting..."
+          sleep 2
+        done
+        
+        echo "PHP container failed to become ready after $max_attempts attempts"
+        exit 1
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Install system dependencies
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install libasound2 -y
+
+    - name: Install Playwright
+      shell: bash
+      run: npx install playwright chromium firefox
+
+    - name: Run Playwright tests
+      shell: bash
+      run: npx playwright test ${{ inputs.TESTS_DIRECTORY }} --reporter=html
+
+    # TODO send test results to Pull Request
+
+    - name: Stop Docker containers
+      if: always()
+      shell: bash
+      run: docker-compose down
+
+    - name: Clean up secrets
+      if: always()
+      shell: bash
+      run: rm -rf .secrets
