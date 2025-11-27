@@ -48,8 +48,7 @@ runs:
       shell: bash
       run: |
         echo "::add-mask::${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
-        echo -n "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}" > .secrets/shopware_composer_token
-        echo "Created secret file: .secrets/shopware_composer_token"
+        echo -n "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}" > .secrets/shopware-composer-token
 
     # TODO build-time and run-time secret handling
 
