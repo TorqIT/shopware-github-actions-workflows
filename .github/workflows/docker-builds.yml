@@ -1,3 +1,5 @@
+# DEPRECATED - will be removed in v8, use ci-docker.yml instead
+#
 # Builds Shopware Docker images. Useful for verification in continuous integration scenarios, for example:
 # on:
 #   pull_request:

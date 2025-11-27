@@ -1,0 +1,21 @@
+name: "CI for Docker-based projects"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: "meta-ci-docker-pr-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  test-ci:
+    name: "Test reusable CI workflow"
+    uses: ./.github/workflows/ci-docker.yml
+    with:
+      PROJECT_REPOSITORY: TorqIT/shopware-skeleton
+      PROJECT_REPOSITORY_REF: main
+      SHOPWARE_ROOT: src
+    secrets:
+      SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+      PROJECT_REPOSITORY_DEPLOY_KEY: ${{ secrets.SHOPWARE_SKELETON_DEPLOY_KEY }}

@@ -1,0 +1,303 @@
+# Syncs the contents of one Azure Storage Account container to another Storage Account container.
+# Requires an Azure service principal with access to both source and target storage accounts.
+#
+# Invoke this workflow in your project's workflow as follows:
+# jobs:
+#   storage-sync:
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-storage-sync.yml@v7
+#     permissions:
+#       contents: read
+#       actions: read
+#     with:
+#       SOURCE_STORAGE_ACCOUNT: prodstorage
+#       SOURCE_CONTAINER: shopware
+#       TARGET_STORAGE_ACCOUNT: stagingstorage
+#       TARGET_CONTAINER: shopware
+#       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+#       SOURCE_SUBSCRIPTION_ID: 12345678-90ab-cdef-1234-567890abcdef
+#       TARGET_SUBSCRIPTION_ID: 98765432-10fe-dcba-4321-fedcba098765
+#     secrets:
+#       AZURE_SERVICE_PRINCIPAL_ID: ${{ secrets.AZURE_SYNC_SERVICE_PRINCIPAL_ID }}
+#       AZURE_SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.AZURE_SYNC_SERVICE_PRINCIPAL_PASSWORD }}
+#       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_STORAGE_SYNC_WEBHOOK_URL }}
+#
+
+name: Azure Storage Sync
+
+on:
+  workflow_call:
+    inputs:
+      RUNNER:
+        required: false
+        type: string
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
+      SOURCE_STORAGE_ACCOUNT:
+        required: true
+        type: string
+        description: Name of the source Azure Storage Account
+      SOURCE_CONTAINER:
+        required: false
+        type: string
+        default: shopware
+        description: Name of the source container
+      SOURCE_RESOURCE_GROUP:
+        required: false
+        type: string
+        description: Azure Resource Group containing the source storage account (optional, will be auto-detected if not provided)
+      TARGET_STORAGE_ACCOUNT:
+        required: true
+        type: string
+        description: Name of the target Azure Storage Account
+      TARGET_CONTAINER:
+        required: false
+        type: string
+        default: shopware
+        description: Name of the target container
+      TARGET_RESOURCE_GROUP:
+        required: false
+        type: string
+        description: Azure Resource Group containing the target storage account (optional, will be auto-detected if not provided)
+      DELETE_DESTINATION:
+        required: false
+        type: boolean
+        default: true
+        description: Whether to delete files in destination that don't exist in source (--delete-destination=true)
+      AZURE_TENANT_ID:
+        required: true
+        type: string
+        description: ID of the Azure tenant containing Storage Account resources
+      SOURCE_SUBSCRIPTION_ID:
+        required: true
+        type: string
+        description: ID of the Azure subscription containing the source Storage Account
+      TARGET_SUBSCRIPTION_ID:
+        required: true
+        type: string
+        description: ID of the Azure subscription containing the target Storage Account
+
+    secrets:
+      AZURE_SERVICE_PRINCIPAL_ID:
+        required: true
+        description: Azure service principal ID used for authenticating with Azure Storage (must have access to both source and target storage accounts)
+      AZURE_SERVICE_PRINCIPAL_PASSWORD:
+        required: true
+        description: Azure service principal password used for authenticating with Azure Storage
+      SLACK_WEBHOOK_URL:
+        required: false
+        description: Webhook URL to send job status messages to Slack
+
+jobs:
+  storage-sync:
+    name: Azure Storage Sync
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+
+    steps:
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/shopware-github-actions-workflows
+          file-name: job-azure-storage-sync.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/shopware-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
+      - name: Validate target is not production
+        run: |
+          echo "Validating that target storage account and container names do not contain 'prod'..."
+
+          # Check target storage account
+          if echo "${{ inputs.TARGET_STORAGE_ACCOUNT }}" | grep -i "prod" > /dev/null; then
+            echo "ERROR: Target storage account '${{ inputs.TARGET_STORAGE_ACCOUNT }}' contains 'prod' substring. This is not allowed for safety reasons."
+            exit 1
+          fi
+
+          # Check target container
+          if echo "${{ inputs.TARGET_CONTAINER }}" | grep -i "prod" > /dev/null; then
+            echo "ERROR: Target container '${{ inputs.TARGET_CONTAINER }}' contains 'prod' substring. This is not allowed for safety reasons."
+            exit 1
+          fi
+
+          echo "✓ Target storage account and container validation passed"
+
+      - name: Log in to Azure via Service Principal
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az login --service-principal \
+              -u ${{ secrets.AZURE_SERVICE_PRINCIPAL_ID }} \
+              -p ${{ secrets.AZURE_SERVICE_PRINCIPAL_PASSWORD }} \
+              --tenant ${{ inputs.AZURE_TENANT_ID }}
+            echo "Azure login successful"
+
+      - name: Add temporary network rule for this runner to Storage Account firewalls
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -e
+            runnerIp=$(curl ipinfo.io/ip)
+
+            echo "Adding temporary network rule for this runner ($runnerIp) to source Storage Account's firewall..."
+            az account set --subscription "${{ inputs.SOURCE_SUBSCRIPTION_ID }}"
+            if [ -z "${{ inputs.SOURCE_RESOURCE_GROUP }}" ]; then
+              source_rg=$(az storage account show --name ${{ inputs.SOURCE_STORAGE_ACCOUNT }} --query 'resourceGroup' -o tsv)
+            else
+              source_rg="${{ inputs.SOURCE_RESOURCE_GROUP }}"
+            fi
+            az storage account network-rule add \
+              --resource-group "$source_rg" \
+              --account-name ${{ inputs.SOURCE_STORAGE_ACCOUNT }} \
+              --ip-address $runnerIp \
+              --verbose
+
+            echo "Adding temporary network rule for this runner ($runnerIp) to target Storage Account's firewall..."
+            az account set --subscription "${{ inputs.TARGET_SUBSCRIPTION_ID }}"
+            echo "Target subscription: ${{ inputs.TARGET_SUBSCRIPTION_ID }}"
+            if [ -z "${{ inputs.TARGET_RESOURCE_GROUP }}" ]; then
+              target_rg=$(az storage account show --name ${{ inputs.TARGET_STORAGE_ACCOUNT }} --query 'resourceGroup' -o tsv)
+            else
+              target_rg="${{ inputs.TARGET_RESOURCE_GROUP }}"
+            fi
+            az storage account network-rule add \
+              --resource-group "$target_rg" \
+              --account-name ${{ inputs.TARGET_STORAGE_ACCOUNT }} \
+              --ip-address $runnerIp \
+              --verbose
+
+            echo "Sleeping for 30 seconds to allow network rules to propagate..."
+            sleep 30
+
+      - name: Install and configure AzCopy
+        run: |
+          echo "Installing AzCopy..."
+          wget -O azcopy.tar.gz https://aka.ms/downloadazcopy-v10-linux
+          tar -xf azcopy.tar.gz --strip-components=1
+          sudo mv azcopy /usr/local/bin/
+          azcopy --version
+
+          # Login to AzCopy using the service principal
+          echo "Logging in to AzCopy with service principal..."
+          azcopy login --service-principal \
+            --application-id ${{ secrets.AZURE_SERVICE_PRINCIPAL_ID }} \
+            --tenant-id ${{ inputs.AZURE_TENANT_ID }}
+
+          echo "AzCopy installation and authentication complete"
+        env:
+          AZCOPY_SPA_CLIENT_SECRET: ${{ secrets.AZURE_SERVICE_PRINCIPAL_PASSWORD }}
+
+      - name: Perform storage sync
+        id: sync-operation
+        run: |
+          set -e
+
+          echo "Starting Azure Storage sync from ${{ inputs.SOURCE_STORAGE_ACCOUNT }}/${{ inputs.SOURCE_CONTAINER }} to ${{ inputs.TARGET_STORAGE_ACCOUNT }}/${{ inputs.TARGET_CONTAINER }}..."
+          start_time=$(date +%s)
+
+          # Build standard blob URLs (authentication handled by AzCopy service principal login)
+          source_url="https://${{ inputs.SOURCE_STORAGE_ACCOUNT }}.blob.core.windows.net/${{ inputs.SOURCE_CONTAINER }}"
+          target_url="https://${{ inputs.TARGET_STORAGE_ACCOUNT }}.blob.core.windows.net/${{ inputs.TARGET_CONTAINER }}"
+
+          azcopy_cmd="azcopy sync \"$source_url\" \"$target_url\""
+
+          if [ "${{ inputs.DELETE_DESTINATION }}" = "true" ]; then
+            azcopy_cmd="$azcopy_cmd --delete-destination=true"
+          fi
+
+          sync_output=$(eval $azcopy_cmd 2>&1)
+          sync_exit_code=$?
+
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+
+          echo "$sync_output"
+
+          files_copied=$(echo "$sync_output" | grep -oP "Number of Copy Transfers Completed: \K\d+" || echo "0")
+          files_skipped=$(echo "$sync_output" | grep -oP "Number of Copy Transfers Skipped: \K\d+" || echo "0")
+          files_failed=$(echo "$sync_output" | grep -oP "Number of Copy Transfers Failed: \K\d+" || echo "0")
+          bytes_transferred=$(echo "$sync_output" | grep -oP "Total Number of Bytes Transferred: \K\d+" || echo "0")
+
+          if [ "$bytes_transferred" -gt 0 ]; then
+            bytes_transferred_mb=$((bytes_transferred / 1024 / 1024))
+          else
+            bytes_transferred_mb=0
+          fi
+
+          echo "Sync completed in ${duration}s"
+          echo "Files copied: $files_copied"
+          echo "Files skipped: $files_skipped"
+          echo "Files failed: $files_failed"
+          echo "Data transferred: ${bytes_transferred_mb}MB"
+
+          echo "duration=$duration" >> $GITHUB_OUTPUT
+          echo "files_copied=$files_copied" >> $GITHUB_OUTPUT
+          echo "files_skipped=$files_skipped" >> $GITHUB_OUTPUT
+          echo "files_failed=$files_failed" >> $GITHUB_OUTPUT
+          echo "bytes_transferred_mb=$bytes_transferred_mb" >> $GITHUB_OUTPUT
+
+          if [ $sync_exit_code -ne 0 ] || [ "$files_failed" -gt 0 ]; then
+            echo "ERROR: Sync operation failed or had failures"
+            exit 1
+          fi
+
+          echo "Storage sync completed successfully"
+
+      - name: Remove temporary network rule from source Storage Account firewall
+        if: always()
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -e
+            runnerIp=$(curl ipinfo.io/ip)
+
+            echo "Removing temporary network rule for this runner ($runnerIp) from source Storage Account's firewall..."
+            az account set --subscription "${{ inputs.SOURCE_SUBSCRIPTION_ID }}"
+            echo "Source subscription: ${{ inputs.SOURCE_SUBSCRIPTION_ID }}"
+            if [ -z "${{ inputs.SOURCE_RESOURCE_GROUP }}" ]; then
+              source_rg=$(az storage account show --name ${{ inputs.SOURCE_STORAGE_ACCOUNT }} --query 'resourceGroup' -o tsv)
+            else
+              source_rg="${{ inputs.SOURCE_RESOURCE_GROUP }}"
+            fi
+            az storage account network-rule remove \
+              --resource-group "$source_rg" \
+              --account-name ${{ inputs.SOURCE_STORAGE_ACCOUNT }} \
+              --ip-address $runnerIp
+
+      - name: Remove temporary network rule from target Storage Account firewall
+        if: always()
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -e
+            runnerIp=$(curl ipinfo.io/ip)
+
+            echo "Removing temporary network rule for this runner ($runnerIp) from target Storage Account's firewall..."
+            az account set --subscription "${{ inputs.TARGET_SUBSCRIPTION_ID }}"
+            if [ -z "${{ inputs.TARGET_RESOURCE_GROUP }}" ]; then
+              target_rg=$(az storage account show --name ${{ inputs.TARGET_STORAGE_ACCOUNT }} --query 'resourceGroup' -o tsv)
+            else
+              target_rg="${{ inputs.TARGET_RESOURCE_GROUP }}"
+            fi
+            az storage account network-rule remove \
+              --resource-group "$target_rg" \
+              --account-name ${{ inputs.TARGET_STORAGE_ACCOUNT }} \
+              --ip-address $runnerIp
+
+      - name: Send job status to Slack
+        if: ${{ !cancelled() }}
+        uses: ./reusable-workflow/.github/actions/send-slack-message
+        with:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PAYLOAD: |
+            text: "*Storage Sync Job*"
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*Azure Storage Account sync job for ${{ github.repository }}*: ${{ job.status == 'success' && 'Success! :white_check_mark:' || 'Failed :x:' }}\n\n*Source:* `${{ inputs.SOURCE_STORAGE_ACCOUNT }}/${{ inputs.SOURCE_CONTAINER }}`\n*Target:* `${{ inputs.TARGET_STORAGE_ACCOUNT }}/${{ inputs.TARGET_CONTAINER }}`\n*Files Copied:* ${{ steps.sync-operation.outputs.files_copied || 'N/A' }}\n*Data Transferred:* ${{ steps.sync-operation.outputs.bytes_transferred_mb || 'N/A' }}MB\n*Duration:* ${{ steps.sync-operation.outputs.duration || 'N/A' }}s\n\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

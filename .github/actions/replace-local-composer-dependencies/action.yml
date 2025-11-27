@@ -15,10 +15,14 @@ runs:
       shell: bash
       run: |
         cd ${{ github.workspace }}/${{ inputs.SHOPWARE_ROOT }}
-        composer config --global --auth bearer.packages.shopware.com "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
-        packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version + " --no-install --no-scripts"' composer.lock)
-        IFS=$'\n'
-        for package in $packages
-        do
-          eval "$package"
-        done
+        if [ -f composer.lock ]; then
+          composer config --global --auth bearer.packages.shopware.com "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
+          packages=$(jq -r '.packages.[] | select(.dist.type=="path") | "composer require " + .name + ":" + .version + " --no-install --no-scripts"' composer.lock)
+          IFS=$'\n'
+          for package in $packages
+          do
+            eval "$package"
+          done
+        else
+          echo "composer.lock not found, skipping this step"
+        fi

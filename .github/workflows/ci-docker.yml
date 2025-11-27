@@ -1,0 +1,293 @@
+# Continuous Integration for projects using Docker
+#
+# on:
+#   pull_request:
+#     types: [opened, reopened, synchronize]
+# jobs:
+#   ci:
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/ci-docker.yml@v8
+#     permissions:
+#       contents: read
+#       actions: read
+#     secrets:
+#       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+#       BUILD_TIME_SECRETS: >
+#         {
+#            "MY_SECRET_ENV_VAR": "${{ secrets.MY_SECRET_ENV_VAR }}",
+#            ...any other build-time secrets you need
+#         }
+#
+
+name: CI
+
+on:
+  workflow_call:
+    inputs:
+      RUNNER:
+        required: false
+        type: string
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
+      PROJECT_REPOSITORY:
+        required: false
+        default: "${{ github.repository }}"
+        type: string
+        description: "The GitHub repository of the project containing Shopware"
+      PROJECT_REPOSITORY_REF:
+        required: false
+        default: "${{ github.ref }}"
+        type: string
+        description: "The Git reference (branch, tag, commit SHA) to checkout from the project repository"
+      SUBMODULES:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether to clone submodules when cloning the project repository"
+      BUILD_TIME_ARGS:
+        required: false
+        type: string
+        default: "{}"
+        description: "A JSON object containing Docker build-time args in key: value format"
+      SHOPWARE_ROOT:
+        required: false
+        type: string
+        default: "."
+        description: "The path (relative to the project's root) in which the Shopware files are stored (e.g. config, src, etc)"
+      INIT_DOCKERFILE:
+        required: false
+        type: string
+        default: ".docker/Dockerfile"
+        description: "The path (relative to the project's root) of the Dockerfile used to build the init image"
+      INIT_DOCKER_TARGET:
+        required: false
+        type: string
+        default: "init"
+        description: "The Docker target to use when building the init image"
+      PHP_DOCKERFILE:
+        required: false
+        type: string
+        default: ".docker/Dockerfile"
+        description: "The path (relative to the project's root) of the Dockerfile used to build the PHP image"
+      PHP_DOCKER_TARGET:
+        required: false
+        type: string
+        default: "php"
+        description: "The Docker target to use when building the PHP image"
+      SUPERVISORD_DOCKERFILE:
+        required: false
+        type: string
+        default: ".docker/Dockerfile"
+        description: "The path (relative to the project's root) of the Dockerfile used to build the supervisord image"
+      SUPERVISORD_TARGET:
+        required: false
+        type: string
+        default: "supervisord"
+        description: "The Docker target to use when building the supervisord image"
+
+    secrets:
+      SHOPWARE_COMPOSER_TOKEN:
+        required: true
+        description: The value of your project's Shopware Composer token
+      BUILD_TIME_SECRETS:
+        required: false
+        description: A JSON object of secrets required at build-time (see above for example format)
+      PROJECT_REPOSITORY_DEPLOY_KEY:
+        required: false
+        description: "An optional SSH deploy key to use when checking out the project repository"
+
+jobs:
+  lint:
+    name: Lint files
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout Shopware project repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.PROJECT_REPOSITORY }}
+          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/shopware-github-actions-workflows
+          file-name: ci-docker.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/shopware-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
+      - name: Lint all files
+        uses: ./reusable-workflow/.github/actions/lint
+
+  build-init:
+    name: Build init image
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout Shopware project repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.PROJECT_REPOSITORY }}
+          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/shopware-github-actions-workflows
+          file-name: ci-docker.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/shopware-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
+      - name: Set composer audit block-insecure to false
+        run: |
+          composer config --file ${{ inputs.SHOPWARE_ROOT }}/composer.json --no-plugins audit.block-insecure false
+
+      - name: Set up Docker
+        uses: ./reusable-workflow/.github/actions/setup-docker
+
+      - name: Build init image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+        with:
+          DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
+          DOCKERFILE_PATH: ${{ inputs.INIT_DOCKERFILE }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
+
+  build-php:
+    name: Build PHP image
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout Shopware project repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.PROJECT_REPOSITORY }}
+          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/shopware-github-actions-workflows
+          file-name: ci-docker.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/shopware-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
+      - name: Set composer audit block-insecure to false
+        run: |
+          composer config --file ${{ inputs.SHOPWARE_ROOT }}/composer.json --no-plugins audit.block-insecure false
+
+      - name: Set up Docker
+        uses: ./reusable-workflow/.github/actions/setup-docker
+
+      - name: Build PHP image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+        with:
+          DOCKERFILE_PATH: ${{ inputs.PHP_DOCKERFILE }}
+          DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
+
+  build-supervisord:
+    name: Build supervisord image
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout Shopware project repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.PROJECT_REPOSITORY }}
+          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/shopware-github-actions-workflows
+          file-name: ci-docker.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/shopware-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
+      - name: Set composer audit block-insecure to false
+        run: |
+          composer config --file ${{ inputs.SHOPWARE_ROOT }}/composer.json --no-plugins audit.block-insecure false
+
+      - name: Set up Docker
+        uses: ./reusable-workflow/.github/actions/setup-docker
+
+      - name: Build supervisord image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+        with:
+          DOCKERFILE_PATH: ${{ inputs.SUPERVISORD_DOCKERFILE }}
+          DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
+          BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+          BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
