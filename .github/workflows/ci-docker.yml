@@ -167,6 +167,10 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
+      - name: Set composer audit block-insecure to false
+        run: |
+          composer config --file ${{ inputs.SHOPWARE_ROOT }}/composer.json --no-plugins audit.block-insecure false
+
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
 
@@ -218,6 +222,10 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 
+      - name: Set composer audit block-insecure to false
+        run: |
+          composer config --file ${{ inputs.SHOPWARE_ROOT }}/composer.json --no-plugins audit.block-insecure false
+
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
 
@@ -268,6 +276,10 @@ jobs:
         with:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
+      - name: Set composer audit block-insecure to false
+        run: |
+          composer config --file ${{ inputs.SHOPWARE_ROOT }}/composer.json --no-plugins audit.block-insecure false
 
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
