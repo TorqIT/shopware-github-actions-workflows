@@ -113,7 +113,7 @@ runs:
     - name: Stop Docker containers
       if: always()
       shell: bash
-      run: docker compose down
+      run: docker compose down -v
 
     - name: Clean up secrets
       if: always()
