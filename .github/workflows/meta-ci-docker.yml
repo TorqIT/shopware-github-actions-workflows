@@ -13,5 +13,5 @@ jobs:
     name: "Test reusable CI workflow"
     uses: ./.github/workflows/ci-docker.yml
     with:
-      PROJECT_REPOSITORY: TorqIT/pimcore-skeleton
-      PROJECT_REPOSITORY_REF: 2024.x
+      PROJECT_REPOSITORY: TorqIT/shopware-skeleton
+      PROJECT_REPOSITORY_REF: main

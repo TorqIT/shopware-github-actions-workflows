@@ -82,7 +82,7 @@ on:
       RUNNER:
         required: false
         type: string
-        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
       SKIP_LINTING:
         required: false
         type: boolean

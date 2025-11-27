@@ -5,16 +5,15 @@
 #     types: [opened, reopened, synchronize]
 # jobs:
 #   ci:
-#     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/ci-docker.yml@v7
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/ci-docker.yml@v8
 #     permissions:
 #       contents: read
 #       actions: read
 #     secrets:
 #       BUILD_TIME_SECRETS: >
 #         {
-#           "pimcore-product-key": "${{ secrets.PIMCORE_PRODUCT_KEY }}",
-#           "pimcore-instance-identifier": "${{ secrets.PIMCORE_INSTANCE_IDENTIFIER }}",
-#           "pimcore-encryption-secret": "${{ secrets.PIMCORE_ENCRYPTION_SECRET }}"
+#            "shopware-composer-token": "${{ secrets.SHOPWARE_COMPOSER_TOKEN }}",
+#            ...any other build-time secrets you need
 #         }
 #
 
@@ -26,39 +25,17 @@ on:
       RUNNER:
         required: false
         type: string
-        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
       PROJECT_REPOSITORY:
         required: false
         default: "${{ github.repository }}"
         type: string
-        description: "The GitHub repository of the project containing Pimcore"
+        description: "The GitHub repository of the project containing Shopware"
       PROJECT_REPOSITORY_REF:
         required: false
         default: "${{ github.ref }}"
         type: string
         description: "The Git reference (branch, tag, commit SHA) to checkout from the project repository"
-      NPM_BUILD:
-        required: false
-        type: boolean
-        description: "Whether an NPM build should be run prior to building the PHP image"
-      NPM_RUN_CMD:
-        required: false
-        type: string
-        description: "The NPM command that should be run prior to building the PHP image"
-      NPM_SPA:
-        required: false
-        type: boolean
-        description: "Whether the NPM build results in a single-page application"
-      SPA_TWIG:
-        required: false
-        type: string
-        default: "default/default.html.twig"
-        description: "The path to the Twig file where the result of the NPM single-page application build should be copied"
-      FRONTEND_ROOT:
-        required: false
-        type: string
-        default: "frontend"
-        description: "The path (relative to the project's root) where frontend files are stored"
       SUBMODULES:
         required: false
         type: boolean
@@ -69,11 +46,11 @@ on:
         type: string
         default: "{}"
         description: "A JSON object containing Docker build-time args in key: value format"
-      PIMCORE_ROOT:
+      SHOPWARE_ROOT:
         required: false
         type: string
         default: "."
-        description: "The path (relative to the project's root) in which the Pimcore files are stored (e.g. config, src, etc)"
+        description: "The path (relative to the project's root) in which the Shopware files are stored (e.g. config, src, etc)"
       INIT_DOCKERFILE:
         required: false
         type: string
@@ -106,18 +83,12 @@ on:
         description: "The Docker target to use when building the supervisord image"
 
     secrets:
+      SHOPWARE_COMPOSER_TOKEN:
+        required: true
+        description: The value of your project's Shopware Composer token
       BUILD_TIME_SECRETS:
         required: false
         description: A JSON object of secrets required at build-time (see above for example format)
-      PIMCORE_ENTERPRISE_TOKEN:
-        required: false
-        description: (Deprecated - use BUILD_TIME_SECRETS instead) The value of your project's Pimcore Enterprise Token
-      TORQ_GITHUB_TOKEN:
-        required: false
-        description: (Deprecated - use BUILD_TIME_SECRETS instead) A GitHub access token used to access private GitHub repositories
-      RECAPTCHA_CLIENT_KEY:
-        required: false
-        description: (Optional) A client key used when building NPM frontends that require ReCAPTCHA
 
 jobs:
   lint:
@@ -136,14 +107,14 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/pimcore-github-actions-workflows
+          repository-name: TorqIT/shopware-github-actions-workflows
           file-name: ci-docker.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
@@ -169,14 +140,14 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/pimcore-github-actions-workflows
+          repository-name: TorqIT/shopware-github-actions-workflows
           file-name: ci-docker.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
@@ -184,20 +155,25 @@ jobs:
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
 
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
 
       - name: Build init image
-        uses: ./reusable-workflow/.github/actions/build-and-push-pimcore-image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
         with:
           DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
           DOCKERFILE_PATH: ${{ inputs.INIT_DOCKERFILE }}
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
-          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
-          PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-          TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
-          PUSH: false
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
 
   build-php:
     name: Build PHP image
@@ -214,14 +190,14 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/pimcore-github-actions-workflows
+          repository-name: TorqIT/shopware-github-actions-workflows
           file-name: ci-docker.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
@@ -229,26 +205,25 @@ jobs:
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
 
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
 
       - name: Build PHP image
-        uses: ./reusable-workflow/.github/actions/build-and-push-pimcore-image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
         with:
           DOCKERFILE_PATH: ${{ inputs.PHP_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.PHP_DOCKER_TARGET }}
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
-          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
-          PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-          TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
-          FRONTEND_ROOT: ${{ inputs.FRONTEND_ROOT }}
-          NPM_BUILD: ${{ inputs.NPM_BUILD }}
-          RECAPTCHA_CLIENT_KEY: ${{ secrets.RECAPTCHA_CLIENT_KEY }}
-          NPM_SPA: ${{ inputs.NPM_SPA }}
-          SPA_TWIG: ${{ inputs.SPA_TWIG }}
-          NPM_RUN_CMD: ${{ inputs.NPM_RUN_CMD }}
-          PUSH: false
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"
 
   build-supervisord:
     name: Build supervisord image
@@ -265,14 +240,14 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/pimcore-github-actions-workflows
+          repository-name: TorqIT/shopware-github-actions-workflows
           file-name: ci-docker.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
@@ -280,17 +255,22 @@ jobs:
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
 
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
       - name: Set up Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
 
       - name: Build supervisord image
-        uses: ./reusable-workflow/.github/actions/build-and-push-pimcore-image
+        uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
         with:
           DOCKERFILE_PATH: ${{ inputs.SUPERVISORD_DOCKERFILE }}
           DOCKERFILE_TARGET: ${{ inputs.SUPERVISORD_TARGET }}
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
-          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
-          PIMCORE_ENTERPRISE_TOKEN: ${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}
-          TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
-          PUSH: false
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          PUSH: "false"

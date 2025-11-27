@@ -4,15 +4,15 @@
 # Invoke this workflow in your project's workflow as follows:
 # jobs:
 #   storage-sync:
-#     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/job-azure-storage-sync.yml@v7
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-storage-sync.yml@v7
 #     permissions:
 #       contents: read
 #       actions: read
 #     with:
 #       SOURCE_STORAGE_ACCOUNT: prodstorage
-#       SOURCE_CONTAINER: pimcore-assets
+#       SOURCE_CONTAINER: shopware
 #       TARGET_STORAGE_ACCOUNT: stagingstorage
-#       TARGET_CONTAINER: pimcore-assets
+#       TARGET_CONTAINER: shopware
 #       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
 #       SOURCE_SUBSCRIPTION_ID: 12345678-90ab-cdef-1234-567890abcdef
 #       TARGET_SUBSCRIPTION_ID: 98765432-10fe-dcba-4321-fedcba098765
@@ -30,7 +30,7 @@ on:
       RUNNER:
         required: false
         type: string
-        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
       SOURCE_STORAGE_ACCOUNT:
         required: true
         type: string
@@ -38,7 +38,7 @@ on:
       SOURCE_CONTAINER:
         required: false
         type: string
-        default: pimcore-assets
+        default: shopware
         description: Name of the source container
       SOURCE_RESOURCE_GROUP:
         required: false
@@ -51,7 +51,7 @@ on:
       TARGET_CONTAINER:
         required: false
         type: string
-        default: pimcore-assets
+        default: shopware
         description: Name of the target container
       TARGET_RESOURCE_GROUP:
         required: false
@@ -96,14 +96,14 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/pimcore-github-actions-workflows
+          repository-name: TorqIT/shopware-github-actions-workflows
           file-name: job-azure-storage-sync.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1

@@ -1,13 +1,13 @@
 # Performs Storage Account and MySQL sync operations from a source Azure Container Apps environment to a target environment.
 #
 # Requires a Service Principal with sufficient permissions to access Container Apps, Storage Accounts, and MySQL servers in both source and target subscriptions.
-# See https://github.com/TorqIT/pimcore-azure-provisioning/blob/main/provisioning-scripts/provision-syncer-service-principal.sh for a script that will create
+# See https://github.com/TorqIT/shopware-azure-provisioning/blob/main/provisioning-scripts/provision-syncer-service-principal.sh for a script that will create
 # a suitable Service Principal.
 #
 # Invoke this workflow in your project's workflow as follows:
 # jobs:
 #   sync-with-shutdown:
-#     uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/job-azure-sync-with-container-shutdown.yml@v7
+#     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/job-azure-sync-with-container-shutdown.yml@v7
 #     permissions:
 #       contents: read
 #       actions: read
@@ -44,7 +44,7 @@ on:
         required: false
         type: string
         default: ubuntu-latest
-        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/pimcore-github-actions-workflows#self-hosted-runners)
+        description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
 
       # Azure Configuration
       AZURE_TENANT_ID:
@@ -89,7 +89,7 @@ on:
       SOURCE_CONTAINER:
         required: false
         type: string
-        default: pimcore-assets
+        default: shopware
         description: Name of the source Storage Account container
       TARGET_STORAGE_ACCOUNT:
         required: true
@@ -98,7 +98,7 @@ on:
       TARGET_CONTAINER:
         required: false
         type: string
-        default: pimcore-assets
+        default: shopware
         description: Name of the target Storage Account container
       DELETE_DESTINATION:
         required: false
@@ -393,14 +393,14 @@ jobs:
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
         with:
-          repository-name: TorqIT/pimcore-github-actions-workflows
+          repository-name: TorqIT/shopware-github-actions-workflows
           file-name: job-azure-sync.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@v4
         with:
-          repository: TorqIT/pimcore-github-actions-workflows
+          repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
