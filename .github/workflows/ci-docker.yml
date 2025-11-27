@@ -10,9 +10,10 @@
 #       contents: read
 #       actions: read
 #     secrets:
+#       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 #       BUILD_TIME_SECRETS: >
 #         {
-#            "shopware-composer-token": "${{ secrets.SHOPWARE_COMPOSER_TOKEN }}",
+#            "MY_SECRET_ENV_VAR": "${{ secrets.MY_SECRET_ENV_VAR }}",
 #            ...any other build-time secrets you need
 #         }
 #
