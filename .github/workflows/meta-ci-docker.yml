@@ -15,3 +15,5 @@ jobs:
     with:
       PROJECT_REPOSITORY: TorqIT/shopware-skeleton
       PROJECT_REPOSITORY_REF: main
+    secrets:
+      SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
