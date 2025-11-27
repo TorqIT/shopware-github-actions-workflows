@@ -44,11 +44,12 @@ runs:
       shell: bash
       run: mkdir -p .secrets
 
-    - name: Create Shopware Composer token secret file
+    - name: Create necessary secret files
       shell: bash
       run: |
         echo "::add-mask::${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
         echo -n "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}" > .secrets/shopware-composer-token
+        php scripts/generate-defuse-key.php > .secrets/torq-common-encryption-secret
 
     # TODO build-time and run-time secret handling
 
