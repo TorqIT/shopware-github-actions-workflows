@@ -50,6 +50,7 @@ runs:
         echo "::add-mask::${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
         echo -n "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}" > .secrets/shopware-composer-token
         php reusable-workflow/scripts/generate-defuse-key.php > .secrets/torq-shopware-common-encryption-secret
+        cat .secrets/torq-shopware-common-encryption-secret
 
     # TODO build-time and run-time secret handling
 
