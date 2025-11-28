@@ -67,8 +67,8 @@ runs:
     - name: Start Docker containers
       shell: bash
       run: |
-        docker compose up init
-        docker compose up php -d
+        docker compose up init --build-arg UID=$(id -u $USER) GID=$(id -g $USER)
+        docker compose up php --build-arg UID=$(id -u $USER) GID=$(id -g $USER) -d
 
     - name: Get PHP port from .env
       id: get-port
