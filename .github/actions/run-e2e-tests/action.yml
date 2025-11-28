@@ -66,6 +66,7 @@ runs:
 
     - name: Start Docker containers
       shell: bash
+      run: |
         docker compose build --build-arg UID=$(id -u $USER) --build-arg GID=$(id -g $USER) init php
         docker compose up init
         docker compose up php -d
