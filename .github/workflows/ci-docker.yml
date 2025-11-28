@@ -350,6 +350,12 @@ jobs:
       - name: Setup Docker
         uses: ./reusable-workflow/.github/actions/setup-docker
 
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
       - name: Run e2e tests
         uses: ./reusable-workflow/.github/actions/run-e2e-tests
         with:
