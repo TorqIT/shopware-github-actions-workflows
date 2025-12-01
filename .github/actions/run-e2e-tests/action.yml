@@ -49,11 +49,15 @@ runs:
       run: |
         echo "::add-mask::${{ inputs.SHOPWARE_COMPOSER_TOKEN }}"
         echo -n "${{ inputs.SHOPWARE_COMPOSER_TOKEN }}" > .secrets/shopware-composer-token
-        php reusable-workflow/scripts/generate-defuse-key.php | tr -d '\n\r' > .secrets/torq-shopware-common-encryption-secret
+        php reusable-workflow/scripts/generate-defuse-key.php 2>/dev/null | tail -n 1 | tr -d '\n\r' > .secrets/torq-shopware-common-encryption-secret
         
-        # Debug: check file size and content
-        ls -la .secrets/torq-shopware-common-encryption-secret
-        hexdump -C .secrets/torq-shopware-common-encryption-secret | head -n 2
+        # Verify the key
+        KEY=$(cat .secrets/torq-shopware-common-encryption-secret)
+        if [[ ! "$KEY" =~ ^def[0-9a-f]+$ ]]; then
+          echo "::error::Invalid encryption key generated"
+          exit 1
+        fi
+        echo "Generated encryption key successfully (length: ${#KEY})"
 
     # TODO build-time and run-time secret handling
 
