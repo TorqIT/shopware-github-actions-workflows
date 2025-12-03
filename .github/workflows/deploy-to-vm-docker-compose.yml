@@ -84,6 +84,11 @@ on:
         type: boolean
         default: false
         description: "Whether the application uses an Azure MySQL server instance as its database"
+      AZURE_STORAGE:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether the application uses Azure Storage and Flysystem for its file storage"
       CONTAINER_REGISTRY:
         required: true
         type: string
@@ -237,6 +242,12 @@ jobs:
       - name: Copy config files required for running with an Azure MySQL server
         uses: ./reusable-workflow/.github/actions/azure-mysql-copy-config
         if: ${{ inputs.AZURE_MYSQL }}
+        with:
+          PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
+
+      - name: Copy config files required for running with Flysystem bundle and Azure Storage
+        uses: ./reusable-workflow/.github/actions/azure-flysystem-copy-config
+        if: ${{ inputs.AZURE_STORAGE }}
         with:
           PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
 
