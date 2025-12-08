@@ -60,6 +60,10 @@ inputs:
   RECAPTCHA_CLIENT_KEY:
     required: false
     description: "(Optional) A client key used when building NPM frontends that require ReCAPTCHA"
+  LOAD:
+    required: false
+    description: "Whether to load the built image into the local Docker cache"
+    default: "false"
 
 runs:
   using: "composite"
@@ -143,7 +147,8 @@ runs:
           pimcore-enterprise-token=${{ inputs.PIMCORE_ENTERPRISE_TOKEN }}            
           torq-github-token=${{ inputs.TORQ_GITHUB_TOKEN }}
           ${{ steps.build-secrets.outputs.secrets }}
-        push: ${{ fromJSON(inputs.PUSH) }}
+        push: ${{ inputs.PUSH == 'true' }}
         cache-from: ${{ inputs.CACHE_FROM }}
         cache-to: ${{ inputs.CACHE_TO }}
         tags: ${{ inputs.TAGS }}
+        load: ${{ inputs.LOAD == 'true' }}
