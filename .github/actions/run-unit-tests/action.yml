@@ -1,11 +1,11 @@
 name: "Run Unit Tests"
 description: "Runs unit tests with PHP and MariaDB containers"
 inputs:
-  INIT_DOCKERFILE:
-    description: "Path to init Dockerfile"
+  DOCKERFILE:
+    description: "Path to Dockerfile"
     required: true
-  INIT_DOCKER_TARGET:
-    description: "Build target in init Dockerfile"
+  DOCKERFILE_TARGET:
+    description: "Build target in Dockerfile"
     required: true
   BUILD_TIME_ARGS:
     required: true
@@ -55,14 +55,14 @@ runs:
     - name: Build image
       uses: ./reusable-workflow/.github/actions/build-and-push-pimcore-image
       with:
-        DOCKERFILE_PATH: ${{ inputs.INIT_DOCKERFILE }}
-        DOCKERFILE_TARGET: ${{ inputs.INIT_DOCKER_TARGET }}
-        PUSH: "false"
+        DOCKERFILE_PATH: ${{ inputs.DOCKERFILE }}
+        DOCKERFILE_TARGET: ${{ inputs.DOCKERFILE_TARGET }}
         PIMCORE_ROOT: ${{ inputs.PIMCORE_ROOT }}
         BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
         BUILD_TIME_SECRETS: ${{ inputs.BUILD_TIME_SECRETS }} 
         PIMCORE_ENTERPRISE_TOKEN: ${{ inputs.PIMCORE_ENTERPRISE_TOKEN }}
         TORQ_GITHUB_TOKEN: ${{ inputs.TORQ_GITHUB_TOKEN }}
+        PUSH: "false"
         LOAD: "true"
         TAGS: "init:test"
 
@@ -80,8 +80,9 @@ runs:
           -e DATABASE_USER=test \
           -e DATABASE_PASSWORD=test \
           -e PIMCORE_TEST_DB_DSN='mysql://test:test@test-db:3306/test' \
+          --entrypoint /bin/bash \
           init:test \
-          /bin/bash -c '
+          -c '
             set -e
             
             echo "Installing Pimcore..."
@@ -92,6 +93,11 @@ runs:
               --mysql-database=test \
               --mysql-username=test \
               --mysql-password=test
+
+            if [ $(ls -A "/var/www/html/var/classes/DataObject" | wc -l) -ne 0 ]; then
+              echo "Building Data Object classes..."
+              runuser -u www-data -- /var/www/html/bin/console pimcore:build:classes
+            fi
             
             echo "Running tests..."
             runuser -u www-data -- /var/www/html/vendor/bin/phpunit --testdox ${{ inputs.UNIT_TESTS_DIRECTORY }}
