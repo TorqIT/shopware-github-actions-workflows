@@ -135,6 +135,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
+          fetch-depth: ${{ inputs.SUBMODULES && 0 || 1 }}
 
       - name: Get workflow version
         id: workflow-version
@@ -169,6 +170,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
+          fetch-depth: ${{ inputs.SUBMODULES && 0 || 1 }}
 
       - name: Get workflow version
         id: workflow-version
@@ -223,6 +225,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
+          fetch-depth: ${{ inputs.SUBMODULES && 0 || 1 }}
 
       - name: Get workflow version
         id: workflow-version
@@ -277,6 +280,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
+          fetch-depth: ${{ inputs.SUBMODULES && 0 || 1 }}
 
       - name: Get workflow version
         id: workflow-version
@@ -332,6 +336,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
+          fetch-depth: ${{ inputs.SUBMODULES && 0 || 1 }}
 
       - name: Get workflow version
         id: workflow-version
