@@ -102,6 +102,11 @@ on:
         type: string
         default: "20"
         description: "The Node.js version to use when running end-to-end tests"
+      PHP_DOCKER_COMPOSE_SERVICE:
+        required: false
+        type: string
+        default: "php"
+        description: "The name of the PHP service in Docker Compose"
 
     secrets:
       SHOPWARE_COMPOSER_TOKEN:
@@ -365,3 +370,4 @@ jobs:
           NODE_VERSION: ${{ inputs.NODE_VERSION }}
           TESTS_DIRECTORY: "${{ inputs.E2E_TESTS_DIRECTORY }}"
           HOSTNAME: "${{ inputs.E2E_TESTS_HOSTNAME }}"
+          PHP_DOCKER_COMPOSE_SERVICE: ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }}

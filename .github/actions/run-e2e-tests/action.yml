@@ -23,7 +23,10 @@ inputs:
     required: true
   HOSTNAME:
     description: 'Hostname to add to /etc/hosts'
-    required: false
+    required: true
+  PHP_DOCKER_COMPOSE_SERVICE:
+    description: 'Name of the PHP service in Docker Compose'
+    required: true
 
 runs:
   using: "composite"
@@ -75,9 +78,9 @@ runs:
     - name: Start Docker containers
       shell: bash
       run: |
-        docker compose build --build-arg UID=$(id -u $USER) --build-arg GID=$(id -g $USER) init php
+        docker compose build --build-arg UID=$(id -u $USER) --build-arg GID=$(id -g $USER) init ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }}
         docker compose up init
-        docker compose up php -d
+        docker compose up ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }} -d
 
     - name: Get PHP port from .env
       id: get-port
