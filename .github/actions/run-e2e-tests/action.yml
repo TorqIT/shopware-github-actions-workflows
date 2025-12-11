@@ -78,6 +78,7 @@ runs:
     - name: Start Docker containers
       shell: bash
       run: |
+        set -e
         docker compose build --build-arg UID=$(id -u $USER) --build-arg GID=$(id -g $USER) init ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }}
         docker compose up init
         docker compose up ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }} -d
@@ -86,6 +87,7 @@ runs:
       id: get-port
       shell: bash
       run: |
+        set -e
         if [ -f .env ]; then
           phpPort=$(grep "^WEB_PORT_EXTERNAL=" .env | cut -d'=' -f2)
           echo "phpPort=$phpPort" >> $GITHUB_OUTPUT
@@ -98,23 +100,20 @@ runs:
     - name: Wait for services to be ready
       shell: bash
       run: |
+        set -e
         echo "Waiting for PHP container to be ready..."
-
         phpPort=${{ steps.get-port.outputs.phpPort }}
         max_attempts=30
         attempt=0
-        
         while [ $attempt -lt $max_attempts ]; do
           if wget --spider --quiet http://127.0.0.1:$phpPort; then
             echo "PHP container is ready!"
             exit 0
           fi
-          
           attempt=$((attempt + 1))
           echo "Attempt $attempt/$max_attempts - PHP container not ready yet, waiting..."
           sleep 2
         done
-        
         echo "PHP container failed to become ready after $max_attempts attempts"
         exit 1
 
