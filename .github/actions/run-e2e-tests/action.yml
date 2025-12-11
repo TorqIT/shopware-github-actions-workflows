@@ -81,7 +81,7 @@ runs:
         set -e
         docker compose build --build-arg UID=$(id -u $USER) --build-arg GID=$(id -g $USER) init ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }}
         docker compose up ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }} -d
-        docker logs --follow init
+        docker compose logs --follow init
 
     - name: Get PHP port from .env
       id: get-port
