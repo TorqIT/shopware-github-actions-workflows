@@ -135,7 +135,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: ${{ inputs.SUBMODULES == true && 0 || 1 }}
+          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
@@ -151,7 +151,6 @@ jobs:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
-          fetch-depth: 1
 
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
@@ -170,7 +169,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: ${{ inputs.SUBMODULES == true && 0 || 1 }}
+          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
@@ -225,7 +224,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: ${{ inputs.SUBMODULES == true && 0 || 1 }}
+          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
@@ -280,7 +279,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: ${{ inputs.SUBMODULES == true && 0 || 1 }}
+          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
@@ -335,7 +334,7 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: ${{ inputs.SUBMODULES == true && 0 || 1 }}
+          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
