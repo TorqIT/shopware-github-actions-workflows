@@ -135,7 +135,6 @@ jobs:
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           ssh-key: ${{ secrets.GIT_SSH_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
