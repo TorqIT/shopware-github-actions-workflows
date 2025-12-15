@@ -127,7 +127,7 @@ runs:
 
     - name: Install Playwright
       shell: bash
-      run: npx install --prefix ${{ inputs.TESTS_DIRECTORY }} playwright chromium firefox 
+      run: cd ${{ inputs.TESTS_DIRECTORY }} && npx install playwright chromium firefox && cd ..
 
     - name: Run Playwright tests
       shell: bash
