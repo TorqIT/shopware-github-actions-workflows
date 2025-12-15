@@ -119,7 +119,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: npm ci
+      run: npm install
 
     - name: Install system dependencies
       shell: bash
