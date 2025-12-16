@@ -150,7 +150,7 @@ runs:
       if: always() && inputs.PR_NUMBER != ''
       uses: daun/playwright-report-summary@v3
       with:
-        report-file: ${{ inputs.TESTS_DIRECTORY }}/results.json
+        report-file: results.json
         pr-number: ${{ inputs.PR_NUMBER }}
         github-token: ${{ inputs.GITHUB_TOKEN }}
 
