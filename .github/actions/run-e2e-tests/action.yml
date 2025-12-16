@@ -150,7 +150,7 @@ runs:
       shell: bash
       run: |
         npm --prefix ${{ inputs.TESTS_DIRECTORY }} install --save-dev @playwright/test
-        sudo npx playwright install-deps
+        npx playwright install chromium firefox
         npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright install --with-deps
 
     - name: Run Playwright tests
