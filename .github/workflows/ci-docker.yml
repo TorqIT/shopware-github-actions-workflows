@@ -370,3 +370,5 @@ jobs:
           TESTS_DIRECTORY: "${{ inputs.E2E_TESTS_DIRECTORY }}"
           HOSTNAME: "${{ inputs.E2E_TESTS_HOSTNAME }}"
           PHP_DOCKER_COMPOSE_SERVICE: ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}

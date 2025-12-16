@@ -27,6 +27,14 @@ inputs:
   PHP_DOCKER_COMPOSE_SERVICE:
     description: 'Name of the PHP service in Docker Compose'
     required: true
+  GITHUB_TOKEN:
+    description: 'GitHub token used for adding results to PRs'
+    required: false
+    default: ''
+  PR_NUMBER:
+    description: 'Pull Request number to post results to'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -131,7 +139,14 @@ runs:
     - name: Run Playwright tests
       shell: bash
       run: |
-        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test --reporter=github
+        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test --reporter=json
+
+    - uses: daun/playwright-report-summary@v3
+      if: always() && inputs.PR_NUMBER != ''
+      with:
+        report-file: results.json
+        pr-number: ${{ inputs.PR_NUMBER }}
+        github-token: ${{ inputs.GITHUB_TOKEN }}
 
     # TODO send test results to Pull Request
 
