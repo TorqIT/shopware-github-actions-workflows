@@ -121,50 +121,17 @@ runs:
       shell: bash
       run: npm --prefix ${{ inputs.TESTS_DIRECTORY }} ci
 
-    - name: Install system dependencies for Playwright browsers
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          wget \
-          curl \
-          gnupg \
-          libnss3 \
-          libatk1.0-0 \
-          libatk-bridge2.0-0 \
-          libcups2 \
-          libxcomposite1 \
-          libxdamage1 \
-          libxrandr2 \
-          libgbm1 \
-          libpango-1.0-0 \
-          libpangocairo-1.0-0 \
-          libgtk-3-0 \
-          libgraphene-1.0-0 \
-          libevent-2.1-7 \
-          libopus0 \
-          libgstreamer-plugins-base1.0-0 \
-          libgstreamer1.0-0 \
-          libflite1 \
-          libhyphen0 \
-          libsecret-1-0 \
-          libharfbuzz-icu0 \
-          libmanette-0.2-0 \
-          fonts-liberation \
-          fonts-liberation2 \
-          unzip \
-          ca-certificates
-
     - name: Install Playwright browsers
       shell: bash
       run: |
         npm --prefix ${{ inputs.TESTS_DIRECTORY }} install --save-dev @playwright/test
+        sudo npx playwright install-deps
         npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright install --with-deps
 
     - name: Run Playwright tests
       shell: bash
       run: |
-        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test --reporter=html
+        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test --reporter=github
 
     # TODO send test results to Pull Request
 
