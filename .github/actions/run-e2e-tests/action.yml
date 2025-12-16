@@ -123,11 +123,17 @@ runs:
 
     - name: Install system dependencies
       shell: bash
-      run: sudo apt-get update && sudo apt-get install libasound2t64 -y
+      run: |
+        sudo apt-get update
+        sudo apt-get install libasound2t64 -y
 
     - name: Install Playwright
       shell: bash
-      run: cd ${{ inputs.TESTS_DIRECTORY }} && npx playwright install chromium firefox && cd ..
+      run: |
+        cd ${{ inputs.TESTS_DIRECTORY }}
+        npm install --save-dev @playwright/test
+        npx playwright install
+        cd ..
 
     - name: Run Playwright tests
       shell: bash
