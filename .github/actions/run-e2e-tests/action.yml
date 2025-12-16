@@ -156,7 +156,7 @@ runs:
     - name: Run Playwright tests
       shell: bash
       run: |
-        PLAYWRIGHT_JSON_OUTPUT_NAME=${{ inputs.TESTS_DIRECTORY }}/results.json npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test --reporter=json
+        npm exec --prefix e2e playwright test --reporter=json > ${{ inputs.TESTS_DIRECTORY }}/results.json
 
     - uses: daun/playwright-report-summary@v3
       if: always() && inputs.PR_NUMBER != ''
