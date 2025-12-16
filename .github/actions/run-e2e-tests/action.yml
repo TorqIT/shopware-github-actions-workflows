@@ -133,7 +133,7 @@ runs:
         cache-name: cache-node-modules
       with:
         path: ${{ inputs.TESTS_DIRECTORY }}/node_modules
-        key: ${{ env.cache-name }}-${{ hashFiles(inputs.TESTS_DIRECTORY + '/package-lock.json') }}
+        key: ${{ env.cache-name }}-${{ hashFiles('${{ inputs.TESTS_DIRECTORY }}/package-lock.json') }}
         restore-keys: |
           ${{ env.cache-name }}-
 
