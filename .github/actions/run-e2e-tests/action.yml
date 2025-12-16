@@ -125,47 +125,34 @@ runs:
         cache: 'npm'
         cache-dependency-path: ${{ inputs.TESTS_DIRECTORY }}/package-lock.json
 
-    - name: Cache node modules
-      if: inputs.NPM_BUILD == 'true'
-      id: cache-npm
+    - name: Cache Playwright browsers
       uses: actions/cache@v4
-      env:
-        cache-name: cache-node-modules
       with:
-        path: ${{ inputs.TESTS_DIRECTORY }}/node_modules
-        key: ${{ env.cache-name }}-${{ hashFiles('${{ inputs.TESTS_DIRECTORY }}/package-lock.json') }}
-        restore-keys: |
-          ${{ env.cache-name }}-
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('${{ inputs.TESTS_DIRECTORY }}/package-lock.json') }}
 
-    - name: Install Node.js dependencies
+    - name: Install Node dependencies
       shell: bash
       run: |
-        if [ "${{ steps.cache-npm.outputs.cache-hit }}" != "true" ]; then
-          npm --prefix ${{ inputs.TESTS_DIRECTORY }} ci
-        else
-          echo "Cache hit: skipping npm ci"
-        fi
+        npm --prefix ${{ inputs.TESTS_DIRECTORY }} ci
 
-    - name: Setup Playwright
+    - name: Install Playwright browsers
       shell: bash
       run: |
-        npm --prefix ${{ inputs.TESTS_DIRECTORY }} install --save-dev @playwright/test
-        npx playwright install chromium firefox
-        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright install --with-deps
+        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright install chromium
 
     - name: Run Playwright tests
       shell: bash
       run: |
-        npm exec --prefix e2e playwright test --reporter=json > ${{ inputs.TESTS_DIRECTORY }}/results.json
+        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test
 
-    - uses: daun/playwright-report-summary@v3
+    - name: Publish Playwright report to PR
       if: always() && inputs.PR_NUMBER != ''
+      uses: daun/playwright-report-summary@v3
       with:
         report-file: ${{ inputs.TESTS_DIRECTORY }}/results.json
         pr-number: ${{ inputs.PR_NUMBER }}
         github-token: ${{ inputs.GITHUB_TOKEN }}
-
-    # TODO send test results to Pull Request
 
     - name: Stop Docker containers
       if: always()
