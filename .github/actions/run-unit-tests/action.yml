@@ -1,0 +1,83 @@
+name: "Run Unit Tests"
+description: "Runs unit tests with PHP and MariaDB containers"
+inputs:
+  DOCKERFILE:
+    description: "Path to Dockerfile"
+    required: true
+  DOCKERFILE_TARGET:
+    description: "Build target in Dockerfile"
+    required: true
+  BUILD_TIME_ARGS:
+    required: true
+    description: "A JSON object containing a list of args and their values in key: value format"
+  BUILD_TIME_SECRETS:
+    required: true
+    description: "JSON object containing a list of secrets and their values in key: value format"
+  SHOPWARE_ROOT:
+    required: true
+    description: "The path (relative to the project's root) in which the Shopware files exist"
+  SHOPWARE_COMPOSER_TOKEN:
+    required: false
+    description: "The value of your project's Shopware Composer token"
+  TORQ_GITHUB_TOKEN:
+    required: false
+    description: "A GitHub access token used to access private GitHub repositories"
+  UNIT_TESTS_DIRECTORY:
+    required: true
+    description: "The directory where the unit tests are located" 
+
+runs: 
+  using: "composite"
+  steps:
+    - name: Create Docker network
+      shell: bash
+      run: |
+        docker network create test-network 2>/dev/null || true
+
+    - name: Start MariaDB container
+      shell: bash
+      run: |
+        docker run -d \
+          --name test-db \
+          --network test-network \
+          -e MYSQL_DATABASE=test \
+          -e MYSQL_USER=test \
+          -e MYSQL_PASSWORD=test \
+          -e MYSQL_ROOT_PASSWORD=test \
+          mariadb:11.4 \
+            --character-set-server=utf8mb4 \
+            --collation-server=utf8mb4_unicode_ci \
+            --innodb-file-format=Barracuda \
+            --innodb-large-prefix=1 \
+            --innodb-file-per-table=1 \
+            --lower-case-table-names=1
+
+    - name: Build image
+      uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+      with:
+        DOCKERFILE_PATH: ${{ inputs.DOCKERFILE }}
+        DOCKERFILE_TARGET: ${{ inputs.DOCKERFILE_TARGET }}
+        SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+        BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+        BUILD_TIME_SECRETS: ${{ inputs.BUILD_TIME_SECRETS }} 
+        SHOPWARE_COMPOSER_TOKEN: ${{ inputs.SHOPWARE_COMPOSER_TOKEN }}
+        TORQ_GITHUB_TOKEN: ${{ inputs.TORQ_GITHUB_TOKEN }}
+        PUSH: "false"
+        LOAD: "true"
+        TAGS: "init:test"
+
+    - name: Run unit tests
+      shell: bash
+      run: |
+        set -e
+        
+        TODO unit test setup for Shopware
+
+    - name: Cleanup containers
+      if: always()
+      shell: bash
+      continue-on-error: true
+      run: |
+        docker stop test-db
+        docker rm test-db
+        docker network rm test-network
