@@ -165,6 +165,7 @@ jobs:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
+          fetch-depth: 1
 
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
@@ -334,7 +335,7 @@ jobs:
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
-          PUSH: "false"
+          PUSH: false
 
   run-unit-tests:
     name: Run unit tests
