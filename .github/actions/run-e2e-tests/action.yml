@@ -145,6 +145,7 @@ runs:
       shell: bash
       run: |
         npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test
+        ls -la test-results
 
     - name: Publish Playwright report to PR
       if: always() && inputs.PR_NUMBER != ''
