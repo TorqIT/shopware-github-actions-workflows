@@ -145,15 +145,12 @@ runs:
       shell: bash
       run: |
         npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test
-        ls -la
-        ls -la ${{ inputs.TESTS_DIRECTORY }}
-        ls -la ${{ inputs.TESTS_DIRECTORY }}/test-results
 
     - name: Publish Playwright report to PR
       if: always() && inputs.PR_NUMBER != ''
       uses: daun/playwright-report-summary@v3
       with:
-        report-file: results.json
+        report-file: test-results/results.json
         pr-number: ${{ inputs.PR_NUMBER }}
         github-token: ${{ inputs.GITHUB_TOKEN }}
 
