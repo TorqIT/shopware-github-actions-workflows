@@ -35,6 +35,10 @@ inputs:
   BUILD_TIME_SECRETS:
     required: true
     description: "(Optional) A JSON object containing a list of secrets and their values in key: value format"
+  LOAD:
+    required: false
+    description: "Whether to load the built image into the local Docker cache"
+    default: "false"
 
 runs:
   using: "composite"
@@ -75,7 +79,8 @@ runs:
         secrets: |
           shopware-composer-token=${{ inputs.SHOPWARE_COMPOSER_TOKEN }}            
           ${{ steps.build-secrets.outputs.secrets }}
-        push: ${{ fromJSON(inputs.PUSH) }}
+        push: ${{ inputs.PUSH == 'true' }}
         cache-from: ${{ inputs.CACHE_FROM }}
         cache-to: ${{ inputs.CACHE_TO }}
         tags: ${{ inputs.TAGS }}
+        load: ${{ inputs.LOAD == 'true' }}
