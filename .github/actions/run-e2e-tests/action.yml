@@ -151,13 +151,7 @@ runs:
         npx playwright test
         cd ..
 
-    - name: Publish Playwright report to PR
-      if: always() && inputs.PR_NUMBER != ''
-      uses: daun/playwright-report-summary@v3
-      with:
-        report-file: ${{ inputs.TESTS_DIRECTORY }}/test-results/results.json
-        pr-number: ${{ inputs.PR_NUMBER }}
-        github-token: ${{ inputs.GITHUB_TOKEN }}
+    # TODO publish test results to PR
 
     - name: Stop Docker containers
       if: always()
