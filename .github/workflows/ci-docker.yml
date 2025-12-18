@@ -133,9 +133,9 @@ on:
       RUN_TIME_SECRETS:
         required: false
         description: A JSON object of secrets required at run-time (see above for example format)
-      GIT_SSH_KEY:
+      PROJECT_REPOSITORY_DEPLOY_KEY:
         required: false
-        description: "An optional SSH key (e.g. a GitHub Deploy Key) to use when performing Git checkouts"
+        description: "An optional SSH deploy key to use when checking out the project repository"
 
 jobs:
   lint:
@@ -148,7 +148,7 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
@@ -182,7 +182,7 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
@@ -236,7 +236,7 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
@@ -290,7 +290,7 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
@@ -392,7 +392,7 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.GIT_SSH_KEY }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
