@@ -134,24 +134,28 @@ runs:
     - name: Install Node dependencies
       shell: bash
       run: |
+        set -e
         npm --prefix ${{ inputs.TESTS_DIRECTORY }} ci
 
     - name: Install Playwright browsers
       shell: bash
       run: |
+        set -e
         npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright install chromium
 
     - name: Run Playwright tests
       shell: bash
       run: |
-        npm exec --prefix ${{ inputs.TESTS_DIRECTORY }} playwright test
-        ls -la test-results
+        set -e
+        cd ${{ inputs.TESTS_DIRECTORY }}
+        npx playwright test
+        cd ..
 
     - name: Publish Playwright report to PR
       if: always() && inputs.PR_NUMBER != ''
       uses: daun/playwright-report-summary@v3
       with:
-        report-file: test-results/results.json
+        report-file: ${{ inputs.TESTS_DIRECTORY }}/test-results/results.json
         pr-number: ${{ inputs.PR_NUMBER }}
         github-token: ${{ inputs.GITHUB_TOKEN }}
 
