@@ -127,6 +127,9 @@ on:
       SHOPWARE_COMPOSER_TOKEN:
         required: true
         description: The value of your project's Shopware Composer token
+      CALLER_GITHUB_TOKEN:
+        required: false
+        description: "The GitHub token of the workflow that called this workflow - optional but will be required in future versions"
       BUILD_TIME_SECRETS:
         required: false
         description: A JSON object of secrets required at build-time (see above for example format)
@@ -433,5 +436,5 @@ jobs:
           TESTS_DIRECTORY: "${{ inputs.E2E_TESTS_DIRECTORY }}"
           HOSTNAME: "${{ inputs.E2E_TESTS_HOSTNAME }}"
           PHP_DOCKER_COMPOSE_SERVICE: ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CALLER_GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || '' }}
