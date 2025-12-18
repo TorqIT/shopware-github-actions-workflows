@@ -13,8 +13,13 @@
 #       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
 #       BUILD_TIME_SECRETS: >
 #         {
-#            "MY_SECRET_ENV_VAR": "${{ secrets.MY_SECRET_ENV_VAR }}",
+#            "my-secret": "${{ secrets.MY_SECRET }}",
 #            ...any other build-time secrets you need
+#         }
+#       RUN_TIME_SECRETS: >
+#         {
+#            "my-secret": "${{ secrets.MY_SECRET }}",
+#            ...any other run-time secrets you need
 #         }
 #
 
@@ -87,6 +92,26 @@ on:
         type: string
         default: "supervisord"
         description: "The Docker target to use when building the supervisord image"
+      E2E_TESTS_DIRECTORY:
+        required: false
+        type: string
+        default: ""
+        description: "The directory containing end-to-end tests"
+      E2E_TESTS_HOSTNAME:
+        required: false
+        type: string
+        default: ""
+        description: "The hostname to use when running end-to-end tests"
+      NODE_VERSION:
+        required: false
+        type: string
+        default: "20"
+        description: "The Node.js version to use when running end-to-end tests"
+      PHP_DOCKER_COMPOSE_SERVICE:
+        required: false
+        type: string
+        default: "php"
+        description: "The name of the PHP service in Docker Compose"
       RUN_UNIT_TESTS:
         required: false
         type: boolean
@@ -105,6 +130,9 @@ on:
       BUILD_TIME_SECRETS:
         required: false
         description: A JSON object of secrets required at build-time (see above for example format)
+      RUN_TIME_SECRETS:
+        required: false
+        description: A JSON object of secrets required at run-time (see above for example format)
       PROJECT_REPOSITORY_DEPLOY_KEY:
         required: false
         description: "An optional SSH deploy key to use when checking out the project repository"
@@ -354,3 +382,57 @@ jobs:
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
           UNIT_TESTS_DIRECTORY: ${{ inputs.UNIT_TESTS_DIRECTORY }}
+
+  run-e2e-tests:
+    name: Run e2e tests
+    if: ${{ inputs.E2E_TESTS_DIRECTORY != '' }}
+    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout Shopware project repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.PROJECT_REPOSITORY }}
+          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
+          submodules: ${{ inputs.SUBMODULES }}
+
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: TorqIT/shopware-github-actions-workflows
+          file-name: ci-docker.yml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout workflow repository to use composite actions
+        uses: actions/checkout@v4
+        with:
+          repository: TorqIT/shopware-github-actions-workflows
+          ref: ${{ steps.workflow-version.outputs.sha }}
+          path: reusable-workflow
+          fetch-depth: 1
+
+      - name: Install tools for workflows/actions
+        uses: ./reusable-workflow/.github/actions/setup-tools
+
+      - name: Setup Docker
+        uses: ./reusable-workflow/.github/actions/setup-docker
+
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
+      - name: Run e2e tests
+        uses: ./reusable-workflow/.github/actions/run-e2e-tests
+        with:
+          BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
+          RUN_TIME_SECRETS: ${{ secrets.RUN_TIME_SECRETS }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+          NODE_VERSION: ${{ inputs.NODE_VERSION }}
+          TESTS_DIRECTORY: "${{ inputs.E2E_TESTS_DIRECTORY }}"
+          HOSTNAME: "${{ inputs.E2E_TESTS_HOSTNAME }}"
+          PHP_DOCKER_COMPOSE_SERVICE: ${{ inputs.PHP_DOCKER_COMPOSE_SERVICE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
