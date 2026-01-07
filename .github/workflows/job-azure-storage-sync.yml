@@ -171,8 +171,8 @@ jobs:
               --ip-address $runnerIp \
               --verbose
 
-            echo "Sleeping for 120 seconds to allow network rules to propagate..."
-            sleep 120
+            echo "Sleeping for 180 seconds to allow network rules to propagate..."
+            sleep 180
 
       - name: Install and configure AzCopy
         run: |
