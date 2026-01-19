@@ -119,6 +119,16 @@ on:
         type: string
         default: "tests"
         description: "The directory where unit tests are located - note this should be relative to the Pimcore root, as once inside the container the working directory is set to the Pimcore root"
+      GITHUB_APP_CHECKOUT:
+        required: false
+        type: boolean
+        default: false
+        description: "Whether to use a GitHub App token for checking out the project repository and submodules"
+      GITHUB_APP_CHECKOUT_REPOSITORIES:
+        required: false
+        type: string
+        default: ""
+        description: "A comma or newline-separated list of repositories to checkout with the GitHub App token - if empty, only the main project repository will be checked out"
 
     secrets:
       BUILD_TIME_SECRETS:
@@ -133,6 +143,12 @@ on:
       RECAPTCHA_CLIENT_KEY:
         required: false
         description: (Optional) A client key used when building NPM frontends that require ReCAPTCHA
+      GITHUB_APP_ID:
+        required: false
+        description: The ID of the GitHub App used to generate a token for checking out the project repository and submodules
+      GITHUB_APP_PRIVATE_KEY:
+        required: false
+        description: The private key of the GitHub App used to generate a token for checking out the project repository and submodules
 
 jobs:
   lint:
@@ -140,12 +156,22 @@ jobs:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
 
     steps:
+      - name: Create token from GitHub App
+        uses: actions/create-github-app-token@v2
+        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
+        id: create_token
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           submodules: ${{ inputs.SUBMODULES }}
+          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Get workflow version
         id: workflow-version
@@ -174,12 +200,22 @@ jobs:
     if: ${{ inputs.INIT }}
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
+      - name: Create token from GitHub App
+        uses: actions/create-github-app-token@v2
+        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
+        id: create_token
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           submodules: ${{ inputs.SUBMODULES }}
+          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Get workflow version
         id: workflow-version
@@ -219,12 +255,22 @@ jobs:
     name: Build PHP image
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
+      - name: Create token from GitHub App
+        uses: actions/create-github-app-token@v2
+        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
+        id: create_token
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           submodules: ${{ inputs.SUBMODULES }}
+          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Get workflow version
         id: workflow-version
@@ -270,12 +316,22 @@ jobs:
     name: Build supervisord image
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
+      - name: Create token from GitHub App
+        uses: actions/create-github-app-token@v2
+        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
+        id: create_token
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           submodules: ${{ inputs.SUBMODULES }}
+          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Get workflow version
         id: workflow-version
@@ -316,12 +372,22 @@ jobs:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     if: ${{ inputs.RUN_UNIT_TESTS }}
     steps:
+      - name: Create token from GitHub App
+        uses: actions/create-github-app-token@v2
+        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
+        id: create_token
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           submodules: ${{ inputs.SUBMODULES }}
+          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Get workflow version
         id: workflow-version
