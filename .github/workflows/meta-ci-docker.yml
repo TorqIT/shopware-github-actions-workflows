@@ -18,6 +18,7 @@ jobs:
       SHOPWARE_ROOT: src
       E2E_TESTS_DIRECTORY: e2e
       E2E_TESTS_HOSTNAME: "demo.localhost.torq"
+      GITHUB_APP_CHECKOUT: true
     secrets:
       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
       GITHUB_APP_ID: ${{ secrets.GH_APP_ID }}

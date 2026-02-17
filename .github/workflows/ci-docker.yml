@@ -447,12 +447,22 @@ jobs:
     if: ${{ inputs.E2E_TESTS_DIRECTORY != '' }}
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
-      - name: Checkout Shopware project repository
+      - name: Create token from GitHub App
+        uses: actions/create-github-app-token@v2
+        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
+        id: create_token
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
+
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           submodules: ${{ inputs.SUBMODULES }}
+          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Get workflow version
         id: workflow-version
