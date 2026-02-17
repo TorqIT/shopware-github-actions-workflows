@@ -9,8 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  skeleton-2024-x:
-    name: "Meta CI for skeleton (2024.x)"
+  skeleton:
+    name: "Meta CI for skeleton"
     uses: ./.github/workflows/ci-docker.yml
     with:
       PROJECT_REPOSITORY: TorqIT/shopwareskeleton
