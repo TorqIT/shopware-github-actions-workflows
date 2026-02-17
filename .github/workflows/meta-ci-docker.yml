@@ -20,4 +20,5 @@ jobs:
       E2E_TESTS_HOSTNAME: "demo.localhost.torq"
     secrets:
       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
-      PROJECT_REPOSITORY_DEPLOY_KEY: ${{ secrets.SHOPWARE_SKELETON_DEPLOY_KEY }}
+      GITHUB_APP_ID: ${{ secrets.GH_APP_ID }}
+      GITHUB_APP_PRIVATE_KEY: ${{ secrets.GH_APP_CLIENT_SECRET }}

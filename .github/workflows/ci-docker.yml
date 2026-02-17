@@ -143,9 +143,6 @@ on:
       RUN_TIME_SECRETS:
         required: false
         description: A JSON object of secrets required at run-time (see above for example format)
-      PROJECT_REPOSITORY_DEPLOY_KEY:
-        required: false
-        description: "(Deprecated - use a GitHub App instead) An optional SSH deploy key to use when checking out the project repository"
       GITHUB_APP_ID:
         required: false
         description: The ID of the GitHub App used to generate a token for checking out the project repository and submodules
@@ -173,7 +170,6 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
           token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
@@ -218,7 +214,6 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
           token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
@@ -282,7 +277,6 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
           token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
@@ -346,7 +340,6 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
           token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
 
@@ -459,7 +452,6 @@ jobs:
         with:
           repository: ${{ inputs.PROJECT_REPOSITORY }}
           ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          ssh-key: ${{ secrets.PROJECT_REPOSITORY_DEPLOY_KEY }}
           submodules: ${{ inputs.SUBMODULES }}
 
       - name: Get workflow version
