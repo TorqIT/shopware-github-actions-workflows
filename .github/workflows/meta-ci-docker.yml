@@ -9,11 +9,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-ci:
-    name: "Test reusable CI workflow"
+  skeleton-2024-x:
+    name: "Meta CI for skeleton (2024.x)"
     uses: ./.github/workflows/ci-docker.yml
     with:
-      PROJECT_REPOSITORY: TorqIT/shopware-skeleton
+      PROJECT_REPOSITORY: TorqIT/shopwareskeleton
       PROJECT_REPOSITORY_REF: main
       SHOPWARE_ROOT: src
       E2E_TESTS_DIRECTORY: e2e
