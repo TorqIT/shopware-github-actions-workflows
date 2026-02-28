@@ -149,6 +149,7 @@ jobs:
                 --auth-mode login \
                 >/dev/null) \
               | wc -c
+          )
 
           echo "fileName=$fileName" >> $GITHUB_OUTPUT
           echo "Dumped file is $fileSize bytes (compressed)"
