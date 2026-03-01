@@ -64,7 +64,7 @@ runs:
         TORQ_GITHUB_TOKEN: ${{ inputs.TORQ_GITHUB_TOKEN }}
         PUSH: "false"
         LOAD: "true"
-        TAGS: "init:test"
+        TAGS: "test:test"
 
     - name: Run unit tests
       shell: bash

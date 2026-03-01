@@ -3,6 +3,9 @@
 # on:
 #   pull_request:
 #     types: [opened, reopened, synchronize]
+# concurrency:
+#      group: "ci__${{ github.event.pull_request.number }}"
+#      cancel-in-progress: true
 # jobs:
 #   ci:
 #     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/ci-docker.yml@v8
@@ -439,7 +442,6 @@ jobs:
           BUILD_TIME_SECRETS: ${{ secrets.BUILD_TIME_SECRETS }}
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
-          TORQ_GITHUB_TOKEN: ${{ secrets.TORQ_GITHUB_TOKEN }}
           UNIT_TESTS_DIRECTORY: ${{ inputs.UNIT_TESTS_DIRECTORY }}
 
   run-e2e-tests:
