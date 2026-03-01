@@ -83,16 +83,6 @@ on:
         required: false
         type: string
         description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
-      PROJECT_REPOSITORY:
-        required: false
-        type: string
-        default: ${{ github.repository }}
-        description: "The repository in which the Pimcore project is located, in owner/repo format. If not provided, the value of github.repository will be used"
-      PROJECT_REPOSITORY_REF:
-        required: false
-        type: string
-        default: ${{ github.ref }}
-        description: "The branch or tag of the repository to use. If not provided, the branch that this workflow was called from will be used"
       SKIP_LINTING:
         required: false
         type: boolean
@@ -190,8 +180,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
           submodules: ${{ inputs.SUBMODULES }}
           fetch-depth: 0
 
@@ -254,7 +242,6 @@ jobs:
 
       - name: Apply Azure infrastructure changes
         uses: ./reusable-workflow/.github/actions/azure-apply-infra-changes
-        if: ${{ vars.AZURE_PARAMETERS_FILE != '' }}
         with:
           SERVICE_PRINCIPAL_ID: ${{ secrets.SERVICE_PRINCIPAL_ID }}
           SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }}
@@ -327,11 +314,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
@@ -379,11 +361,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
@@ -431,11 +408,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          fetch-depth: 0
 
       - name: Get workflow version
         id: workflow-version
