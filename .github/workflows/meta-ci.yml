@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  meta:
+  meta-checks:
     name: "Meta CI checks"
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +26,7 @@ jobs:
         with:
           args: -color -shellcheck=
 
-  skeleton-check:
+  skeleton-ci-check:
     name: "Test CI workflow against Shopware skeleton"
     uses: ./.github/workflows/ci-docker.yml
     with:
