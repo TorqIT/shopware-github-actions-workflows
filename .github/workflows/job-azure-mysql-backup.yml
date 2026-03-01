@@ -133,15 +133,16 @@ jobs:
           dbName="${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }}"
 
           echo "Performing database dump..."
-          MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
-            mysqldump \
-              -h "$dbHost" \
-              -u "$dbUser" \
-              --ssl-mode=VERIFY_CA \
-              --ssl-ca ./reusable-workflow/.azure/config/db/DigiCertGlobalRootCA.crt.pem \
-              --single-transaction --routines --triggers --add-drop-table --disable-keys --extended-insert --no-tablespaces \
-              "$dbName" \
-            | gzip -c > "$fileName"
+          # MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
+          #   mysqldump \
+          #     -h "$dbHost" \
+          #     -u "$dbUser" \
+          #     --ssl-mode=VERIFY_CA \
+          #     --ssl-ca ./reusable-workflow/.azure/config/db/DigiCertGlobalRootCA.crt.pem \
+          #     --single-transaction --routines --triggers --add-drop-table --disable-keys --extended-insert --no-tablespaces \
+          #     "$dbName" \
+          #   | gzip -c > "$fileName"
+          touch "$fileName"
           fileSize="$(wc -c < "$fileName")"
 
           echo "Uploading backup to Storage Account..."
