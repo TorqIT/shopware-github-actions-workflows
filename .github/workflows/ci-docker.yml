@@ -42,7 +42,7 @@ on:
         description: "The GitHub repository of the project containing Shopware"
       PROJECT_REPOSITORY_REF:
         required: false
-        default: "${{ github.ref }}"
+        default: "${{ github.head_ref }}"
         type: string
         description: "The Git reference (branch, tag, commit SHA) to checkout from the project repository"
       SUBMODULES:
@@ -130,11 +130,6 @@ on:
         type: boolean
         default: false
         description: "Whether to use a GitHub App token for checking out the project repository and submodules"
-      GITHUB_APP_CHECKOUT_REPOSITORIES:
-        required: false
-        type: string
-        default: ""
-        description: "A comma or newline-separated list of repositories to checkout with the GitHub App token - if empty, only the main project repository will be checked out"
 
     secrets:
       SHOPWARE_COMPOSER_TOKEN:
@@ -159,23 +154,6 @@ jobs:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
 
     steps:
-      - name: Create token from GitHub App
-        uses: actions/create-github-app-token@v2
-        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
-        id: create_token
-        with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
-          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
-
       - name: Get workflow version
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
@@ -185,12 +163,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Check out project repository and submodules
+        uses: ./reusable-workflow/.github/actions/checkout
+        with:
+          PROJECT_REPOSITORY: ${{ inputs.PROJECT_REPOSITORY }}
+          PROJECT_REPOSITORY_REF: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          SUBMODULES: ${{ inputs.SUBMODULES }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_APP_CHECKOUT: ${{ inputs.GITHUB_APP_CHECKOUT }}
+          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
@@ -203,23 +192,6 @@ jobs:
     if: ${{ inputs.INIT }}
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
-      - name: Create token from GitHub App
-        uses: actions/create-github-app-token@v2
-        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
-        id: create_token
-        with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
-          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
-
       - name: Get workflow version
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
@@ -229,12 +201,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Check out project repository and submodules
+        uses: ./reusable-workflow/.github/actions/checkout
+        with:
+          PROJECT_REPOSITORY: ${{ inputs.PROJECT_REPOSITORY }}
+          PROJECT_REPOSITORY_REF: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          SUBMODULES: ${{ inputs.SUBMODULES }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_APP_CHECKOUT: ${{ inputs.GITHUB_APP_CHECKOUT }}
+          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
@@ -266,23 +249,6 @@ jobs:
     name: Build PHP image
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
-      - name: Create token from GitHub App
-        uses: actions/create-github-app-token@v2
-        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
-        id: create_token
-        with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
-          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
-
       - name: Get workflow version
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
@@ -292,12 +258,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Check out project repository and submodules
+        uses: ./reusable-workflow/.github/actions/checkout
+        with:
+          PROJECT_REPOSITORY: ${{ inputs.PROJECT_REPOSITORY }}
+          PROJECT_REPOSITORY_REF: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          SUBMODULES: ${{ inputs.SUBMODULES }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_APP_CHECKOUT: ${{ inputs.GITHUB_APP_CHECKOUT }}
+          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
@@ -329,23 +306,6 @@ jobs:
     name: Build supervisord image
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     steps:
-      - name: Create token from GitHub App
-        uses: actions/create-github-app-token@v2
-        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
-        id: create_token
-        with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
-          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
-
       - name: Get workflow version
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
@@ -355,12 +315,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Check out project repository and submodules
+        uses: ./reusable-workflow/.github/actions/checkout
+        with:
+          PROJECT_REPOSITORY: ${{ inputs.PROJECT_REPOSITORY }}
+          PROJECT_REPOSITORY_REF: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          SUBMODULES: ${{ inputs.SUBMODULES }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_APP_CHECKOUT: ${{ inputs.GITHUB_APP_CHECKOUT }}
+          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
@@ -394,23 +365,6 @@ jobs:
     runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
     if: ${{ inputs.RUN_UNIT_TESTS }}
     steps:
-      - name: Create token from GitHub App
-        uses: actions/create-github-app-token@v2
-        if: ${{ inputs.GITHUB_APP_CHECKOUT }}
-        id: create_token
-        with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
-          repositories: ${{ inputs.GITHUB_APP_CHECKOUT_REPOSITORIES }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ inputs.PROJECT_REPOSITORY }}
-          ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-          submodules: ${{ inputs.SUBMODULES }}
-          token: ${{ inputs.GITHUB_APP_CHECKOUT && steps.create_token.outputs.token || secrets.GITHUB_TOKEN }}
-
       - name: Get workflow version
         id: workflow-version
         uses: canonical/get-workflow-version-action@v1
@@ -420,12 +374,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
           path: reusable-workflow
           fetch-depth: 1
+
+      - name: Check out project repository and submodules
+        uses: ./reusable-workflow/.github/actions/checkout
+        with:
+          PROJECT_REPOSITORY: ${{ inputs.PROJECT_REPOSITORY }}
+          PROJECT_REPOSITORY_REF: ${{ inputs.PROJECT_REPOSITORY_REF }}
+          SUBMODULES: ${{ inputs.SUBMODULES }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_APP_CHECKOUT: ${{ inputs.GITHUB_APP_CHECKOUT }}
+          GITHUB_APP_ID: ${{ secrets.GITHUB_APP_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
 
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
