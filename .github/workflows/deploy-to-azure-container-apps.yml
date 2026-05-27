@@ -87,7 +87,7 @@ on:
         required: false
         type: string
         default: ${{ github.repository }}
-        description: "The repository in which the Pimcore project is located, in owner/repo format. If not provided, the value of github.repository will be used"
+        description: "The repository in which the Shopware project is located, in owner/repo format. If not provided, the value of github.repository will be used"
       PROJECT_REPOSITORY_REF:
         required: false
         type: string
@@ -166,7 +166,7 @@ on:
         required: false
         type: boolean
         default: false
-        description: "Feature flag - whether to automatically install missing required Pimcore bundles (e.g. Azure Flysystem bundle). Will be removed and assumed true in a future release."
+        description: "Feature flag - whether to automatically install missing required Shopware bundles (e.g. Azure Flysystem bundle). Will be removed and assumed true in a future release."
       FEATURE_FLAG_DISABLE_CONFIG_COPY:
         required: false
         type: boolean

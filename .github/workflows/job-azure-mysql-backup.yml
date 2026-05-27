@@ -146,7 +146,7 @@ jobs:
           fileName="${timestamp}.tar.gz"
           dbHost="${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com"
           dbUser="${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}"
-          dbName="${{ vars.AZURE_MYSQL_DATABASE || 'pimcore' }}"
+          dbName="${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }}"
 
           echo "Performing database dump with mydumper..."
           MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
