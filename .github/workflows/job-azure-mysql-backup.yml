@@ -155,7 +155,6 @@ jobs:
               --user="$dbUser" \
               --database="$dbName" \
               --ssl-mode=VERIFY_CA \
-              --ssl-ca=./reusable-workflow/.azure/config/db/DigiCertGlobalRootCA.crt.pem \
               --outputdir="$dumpDir" \
               --threads=${{ inputs.MYDUMPER_THREADS }} \
               --compress \
