@@ -154,7 +154,7 @@ jobs:
               --host="$dbHost" \
               --user="$dbUser" \
               --database="$dbName" \
-              --ssl-mode=VERIFY_CA \
+              --ssl-mode=PREFERRED \
               --outputdir="$dumpDir" \
               --threads=${{ inputs.MYDUMPER_THREADS }} \
               --compress \
