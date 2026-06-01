@@ -51,6 +51,16 @@ on:
       ENVIRONMENT:
         required: true
         type: string
+      IGNORE_TABLES:
+        required: false
+        type: string
+        default: "application_logs,messenger_messages,recyclebin,search_backend_data,versions"
+        description: Comma-separated list of table names to ignore during dump (e.g., "application_logs,versions,cache")
+      IGNORE_TABLE_PATTERNS:
+        required: false
+        type: string
+        default: "application_logs_archive_.*,messenger_messages_.*"
+        description: Regex pattern for table names to ignore during dump (e.g., "cache_.*,temp_.*")
       MYDUMPER_THREADS:
         required: false
         type: number
@@ -148,6 +158,28 @@ jobs:
           dbUser="${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}"
           dbName="${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }}"
 
+          OMIT_FILE="omit_tables.txt"
+          touch "$OMIT_FILE"
+
+          # Add specific tables to exclude data
+          if [ -n "${{ inputs.IGNORE_TABLES }}" ]; then
+            IFS=',' read -ra TABLES <<< "${{ inputs.IGNORE_TABLES }}"
+            for table in "${TABLES[@]}"; do
+              table=$(echo "$table" | xargs)
+              if [ -n "$table" ]; then
+                echo "${{ inputs.SOURCE_DATABASE }}.$table" >> "$OMIT_FILE"
+                echo "Will exclude data for table: $table"
+              fi
+            done
+          fi
+
+          OMIT_OPTION=""
+          if [ -s "$OMIT_FILE" ]; then
+            echo "Tables to exclude data:"
+            cat "$OMIT_FILE"
+            OMIT_OPTION="--omit-from-file=$OMIT_FILE"
+          fi
+
           echo "Performing database dump with mydumper..."
           MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
             mydumper \
@@ -162,6 +194,7 @@ jobs:
               --triggers \
               --trx-tables \
               --sync-thread-lock-mode=NO_LOCK \
+              $OMIT_OPTION \
               --verbose=3
 
           echo "Compressing dump directory..."
