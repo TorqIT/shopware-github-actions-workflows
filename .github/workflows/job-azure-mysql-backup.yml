@@ -162,7 +162,7 @@ jobs:
             for table in "${TABLES[@]}"; do
               table=$(echo "$table" | xargs)
               if [ -n "$table" ]; then
-                echo "${{ inputs.SOURCE_DATABASE }}.$table" >> "$OMIT_FILE"
+                echo "${{ vars.AZURE_MYSQL_DATABASE }}.$table" >> "$OMIT_FILE"
                 echo "Will exclude data for table: $table"
               fi
             done
