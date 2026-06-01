@@ -54,13 +54,8 @@ on:
       IGNORE_TABLES:
         required: false
         type: string
-        default: "application_logs,messenger_messages,recyclebin,search_backend_data,versions"
+        default: "messenger_messages,sessions"
         description: Comma-separated list of table names to ignore during dump (e.g., "application_logs,versions,cache")
-      IGNORE_TABLE_PATTERNS:
-        required: false
-        type: string
-        default: "application_logs_archive_.*,messenger_messages_.*"
-        description: Regex pattern for table names to ignore during dump (e.g., "cache_.*,temp_.*")
       MYDUMPER_THREADS:
         required: false
         type: number
