@@ -84,14 +84,14 @@ jobs:
     steps:
       - name: Get workflow version
         id: workflow-version
-        uses: canonical/get-workflow-version-action@v1
+        uses: canonical/get-workflow-version-action@b21f2a1dad0467fd79081fa16dad4f4935fc6253 # v1.0.3
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
           file-name: job-azure-mysql-backup.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
@@ -119,7 +119,7 @@ jobs:
           SUBSCRIPTION: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Add temporary network rule for this runner to database server and Storage Account firewalls
-        uses: azure/cli@v2
+        uses: azure/cli@9eb25b8360668fb0ecbafa808d40e2197b2f5f52 # v3.0.0
         with:
           inlineScript: |
             set -e
@@ -151,7 +151,7 @@ jobs:
           fileName="${timestamp}.tar.gz"
           dbHost="${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com"
           dbUser="${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}"
-          dbName="${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }}"
+          dbName="${{ vars.AZURE_MYSQL_DATABASE || 'pimcore' }}"
 
           OMIT_FILE="omit_tables.txt"
           touch "$OMIT_FILE"
@@ -218,7 +218,7 @@ jobs:
 
       - name: Remove temporary network rule from database server firewall
         if: always()
-        uses: azure/cli@v2
+        uses: azure/cli@9eb25b8360668fb0ecbafa808d40e2197b2f5f52 # v3.0.0
         with:
           inlineScript: |
             set -e
@@ -230,7 +230,7 @@ jobs:
 
       - name: Remove temporary network rule from Storage Account firewall
         if: always()
-        uses: azure/cli@v2
+        uses: azure/cli@9eb25b8360668fb0ecbafa808d40e2197b2f5f52 # v3.0.0
         with:
           inlineScript: |
             set -e
@@ -242,7 +242,7 @@ jobs:
 
       - name: Send job status to Slack
         if: ${{ !cancelled() }}
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
         with:
           webhook: ${{ secrets.SLACK_BACKUPS_WEBHOOK_URL }}
           webhook-type: incoming-webhook
