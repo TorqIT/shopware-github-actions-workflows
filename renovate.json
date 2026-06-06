@@ -6,6 +6,12 @@
       "pinDigests": true,
       "groupName": "GitHub Actions",
       "schedule": ["on monday"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackagePrefixes": ["TorqIT/"],
+      "pinDigests": false,
+      "enabled": false
     }
   ]
 }
