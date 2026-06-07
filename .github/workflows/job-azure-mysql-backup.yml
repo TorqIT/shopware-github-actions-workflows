@@ -55,7 +55,7 @@ on:
         required: false
         type: string
         default: "messenger_messages,sessions"
-        description: Comma-separated list of table names to ignore during dump (e.g., "application_logs,versions,cache")
+        description: Comma-separated list of table names to ignore during dump (e.g., "messenger_messages,sessions")
       MYDUMPER_THREADS:
         required: false
         type: number
@@ -151,7 +151,7 @@ jobs:
           fileName="${timestamp}.tar.gz"
           dbHost="${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com"
           dbUser="${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}"
-          dbName="${{ vars.AZURE_MYSQL_DATABASE || 'pimcore' }}"
+          dbName="${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }}"
 
           OMIT_FILE="omit_tables.txt"
           touch "$OMIT_FILE"
