@@ -146,7 +146,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          timestamp="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
           dumpDir="db_dump_${timestamp}"
           fileName="${timestamp}.tar.gz"
           dbHost="${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com"
