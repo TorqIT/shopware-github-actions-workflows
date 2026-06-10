@@ -18,10 +18,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - parameters-file: "./.github/ci/parameters.2025.x.json"
-          - parameters-file: "./.github/ci/parameters.2026.x.json"
-    uses: TorqIT/pimcore-azure-provisioning/.github/workflows/tear-down-azure-resources.yml@v2
+          - environment: "2025.x"
+            parameters-file: "./.github/ci/parameters.2025.x.json"
+          - environment: "2026.x"
+            parameters-file: "./.github/ci/parameters.2026.x.json"
+    uses: TorqIT/pimcore-azure-provisioning/.github/workflows/tear-down-azure-resources.yml@main
     with:
+      ENVIRONMENT: ${{ matrix.environment }}
       SERVICE_PRINCIPAL_ID: ${{ vars.SERVICE_PRINCIPAL_ID }}
       PARAMETERS_FILE: ${{ matrix.parameters-file }}
     secrets:
