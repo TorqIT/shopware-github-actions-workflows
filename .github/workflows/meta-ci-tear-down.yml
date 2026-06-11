@@ -24,5 +24,6 @@ jobs:
     with:
       SERVICE_PRINCIPAL_ID: ${{ vars.CI_SERVICE_PRINCIPAL_ID }}
       PARAMETERS_FILE: ${{ matrix.parameters-file }}
+      FAIL_ON_ERROR: ${{ github.event_name == 'pull_request' }}
     secrets:
       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.CI_SERVICE_PRINCIPAL_PASSWORD }}
