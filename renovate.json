@@ -2,12 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "timezone": "America/New_York",
   "schedule": ["after 5am and before 7am on Monday"],
+  "updateNotScheduled": false,
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
       "pinDigests": true,
-      "groupName": "GitHub Actions",
-      "updateNotScheduled": false
+      "groupName": "GitHub Actions"
     },
     {
       "matchManagers": ["github-actions"],
