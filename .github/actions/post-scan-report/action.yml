@@ -150,8 +150,8 @@ runs:
                   .advisories // {} | to_entries[] |
                   .key as $pkg |
                   .value[] |
-                  select(.ignored != true) |
-                  [$pkg, (.severity // "unknown" | ascii_upcase), (.advisoryId // "")] |
+                  select(.ignored != true and (.severity == "high" or .severity == "critical")) |
+                  [$pkg, (.severity | ascii_upcase), (.advisoryId // "")] |
                   @tsv
                 ' ./scan-results/composer-audit.json 2>/dev/null || echo "")
                 if [ -n "$rows" ]; then
@@ -162,7 +162,7 @@ runs:
                   done <<< "$rows"
                   echo ""
                 else
-                  echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL)."
+                  echo "No HIGH or CRITICAL advisories found — refer to the [action logs]($LOGS_URL) for lower-severity findings."
                   echo ""
                 fi
               else

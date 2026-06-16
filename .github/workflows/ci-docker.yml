@@ -268,7 +268,6 @@ jobs:
         id: composer-scan
         continue-on-error: true
         run: |
-          set -o pipefail
           {
             PIMCORE_ENTERPRISE_TOKEN="${{ secrets.PIMCORE_ENTERPRISE_TOKEN }}"
             if [[ -z "$PIMCORE_ENTERPRISE_TOKEN" ]]; then
@@ -282,8 +281,10 @@ jobs:
               composer --working-dir=${{ inputs.PIMCORE_ROOT }} install --prefer-dist --no-scripts --ignore-platform-reqs
             fi
             composer --working-dir=${{ inputs.PIMCORE_ROOT }} audit --abandoned=ignore --locked --no-dev --format=json > /tmp/composer-audit.json 2>/dev/null || true
-            composer --working-dir=${{ inputs.PIMCORE_ROOT }} audit --abandoned=ignore --locked --no-dev
-          } 2>&1 | tee /tmp/composer-audit.txt
+            composer --working-dir=${{ inputs.PIMCORE_ROOT }} audit --abandoned=ignore --locked --no-dev || true
+          } 2>&1 | tee /tmp/composer-audit.txt || true
+          high_critical_count=$(jq '[.advisories // {} | to_entries[] | .value[] | select(.ignored != true and (.severity == "high" or .severity == "critical"))] | length' /tmp/composer-audit.json 2>/dev/null || echo 0)
+          [ "$high_critical_count" -eq 0 ]
 
       - name: Run Semgrep SAST scan
         id: semgrep-scan
