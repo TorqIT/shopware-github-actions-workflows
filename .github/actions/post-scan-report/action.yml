@@ -11,6 +11,10 @@ inputs:
   SEMGREP_OUTCOME:
     required: true
     description: "Outcome of the Semgrep SAST scan (success/failure/skipped)"
+  INIT:
+    required: false
+    default: "true"
+    description: "Whether the project uses an init container (omits the init Trivy row when false)"
   REF:
     required: true
     description: "The branch/ref name used in the comment marker for deduplication"
@@ -57,7 +61,6 @@ runs:
         npm_outcome="${{ inputs.NPM_OUTCOME }}"
         composer_outcome="${{ inputs.COMPOSER_OUTCOME }}"
         semgrep_outcome="${{ inputs.SEMGREP_OUTCOME }}"
-        init_outcome=$(cat ./trivy-results-init/trivy-init-status.txt 2>/dev/null || echo "unknown")
         php_outcome=$(cat ./trivy-results-php/trivy-php-status.txt 2>/dev/null || echo "unknown")
         supervisord_outcome=$(cat ./trivy-results-supervisord/trivy-supervisord-status.txt 2>/dev/null || echo "unknown")
 
@@ -65,17 +68,25 @@ runs:
           case "$1" in
             success) echo "✅ Passed" ;;
             failure) echo "❌ Failed" ;;
-            skipped) echo "⏭️ Skipped" ;;
+            skipped) echo "❌ Skipped" ;;
             *) echo "⚠️ Unknown" ;;
           esac
         }
 
-        labels=("npm audit" "Composer audit" "Semgrep SAST" "Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
-        outcomes=("$npm_outcome" "$composer_outcome" "$semgrep_outcome" "$init_outcome" "$php_outcome" "$supervisord_outcome")
+        if [[ "${{ inputs.INIT }}" == "true" ]]; then
+          init_outcome=$(cat ./trivy-results-init/trivy-init-status.txt 2>/dev/null || echo "unknown")
+          labels=("npm audit" "Composer audit" "Semgrep SAST" "Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
+          outcomes=("$npm_outcome" "$composer_outcome" "$semgrep_outcome" "$init_outcome" "$php_outcome" "$supervisord_outcome")
+        else
+          labels=("npm audit" "Composer audit" "Semgrep SAST" "Trivy (php image)" "Trivy (supervisord image)")
+          outcomes=("$npm_outcome" "$composer_outcome" "$semgrep_outcome" "$php_outcome" "$supervisord_outcome")
+        fi
 
         failure_count=0
         for i in "${!outcomes[@]}"; do
-          [ "${outcomes[$i]}" = "failure" ] && failure_count=$((failure_count + 1))
+          if [ "${outcomes[$i]}" = "failure" ] || [ "${outcomes[$i]}" = "skipped" ]; then
+            failure_count=$((failure_count + 1))
+          fi
         done
 
         LOGS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
@@ -188,26 +199,37 @@ runs:
               echo ""
             fi
 
-            trivy_names=("init" "php" "supervisord")
-            trivy_labels=("Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
-            trivy_outcomes=("$init_outcome" "$php_outcome" "$supervisord_outcome")
+            if [[ "${{ inputs.INIT }}" == "true" ]]; then
+              trivy_names=("init" "php" "supervisord")
+              trivy_labels=("Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
+              trivy_outcomes=("$init_outcome" "$php_outcome" "$supervisord_outcome")
+            else
+              trivy_names=("php" "supervisord")
+              trivy_labels=("Trivy (php image)" "Trivy (supervisord image)")
+              trivy_outcomes=("$php_outcome" "$supervisord_outcome")
+            fi
             for j in "${!trivy_names[@]}"; do
               name="${trivy_names[$j]}"
               label="${trivy_labels[$j]}"
               t_outcome="${trivy_outcomes[$j]}"
-              if [ "$t_outcome" = "failure" ]; then
+              if [ "$t_outcome" = "failure" ] || [ "$t_outcome" = "skipped" ]; then
                 echo ""
                 echo "<details>"
                 echo "<summary><strong>$label</strong></summary>"
                 echo ""
-                echo "These may contain OS-level package vulnerabilities that require updates (e.g. `apt update <package>`) to be added to the Dockerfile."
-                echo ""
-                trivy_text=$(cat "./trivy-results-${name}/trivy-${name}.txt" 2>/dev/null || echo "")
-                if [ -n "$trivy_text" ]; then
-                  echo '```'
-                  echo "$trivy_text"
-                  echo '```'
+                if [ "$t_outcome" = "skipped" ]; then
+                  echo "The Trivy scan was skipped, likely because the Docker image build failed. Refer to the [action logs]($LOGS_URL) for details."
                   echo ""
+                else
+                  echo "These may contain OS-level package vulnerabilities that require updates (e.g. \`apt update <package>\`) to be added to the Dockerfile."
+                  echo ""
+                  trivy_text=$(cat "./trivy-results-${name}/trivy-${name}.txt" 2>/dev/null || echo "")
+                  if [ -n "$trivy_text" ]; then
+                    echo '```'
+                    echo "$trivy_text"
+                    echo '```'
+                    echo ""
+                  fi
                 fi
                 echo "</details>"
                 echo ""

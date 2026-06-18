@@ -159,6 +159,9 @@ on:
       TORQ_GITHUB_TOKEN:
         required: false
         description: (Optional) A GitHub access token used to access private GitHub repositories
+      REPMAN_CLIENT_TOKEN:
+        required: false
+        description: (Optional) A client token for authenticating with a private Repman Composer repository
       RECAPTCHA_CLIENT_KEY:
         required: false
         description: (Optional) A client key used when building NPM frontends that require ReCAPTCHA
@@ -282,6 +285,17 @@ jobs:
               echo "::add-mask::$PIMCORE_ENTERPRISE_TOKEN"
               composer --working-dir=${{ inputs.PIMCORE_ROOT }} config --global --auth http-basic.repo.pimcore.com token "$PIMCORE_ENTERPRISE_TOKEN"
             fi
+            REPMAN_CLIENT_TOKEN="${{ secrets.REPMAN_CLIENT_TOKEN }}"
+            if [[ -z "$REPMAN_CLIENT_TOKEN" ]]; then
+              REPMAN_CLIENT_TOKEN=$(printf '%s' '${{ secrets.BUILD_TIME_SECRETS }}' | jq -r '."repman-client-token" // empty' 2>/dev/null || true)
+            fi
+            if [[ -n "$REPMAN_CLIENT_TOKEN" ]]; then
+              echo "::add-mask::$REPMAN_CLIENT_TOKEN"
+              REPMAN_HOST=$(jq -r '.repositories // [] | map(select(.url // "" | contains("repman.io"))) | .[0].url // "" | ltrimstr("https://") | ltrimstr("http://") | rtrimstr("/")' ${{ inputs.PIMCORE_ROOT }}/composer.json 2>/dev/null || true)
+              if [[ -n "$REPMAN_HOST" ]]; then
+                composer --working-dir=${{ inputs.PIMCORE_ROOT }} config --global --auth http-basic.$REPMAN_HOST token "$REPMAN_CLIENT_TOKEN"
+              fi
+            fi
             if [ ! -f "${{ inputs.PIMCORE_ROOT }}/composer.lock" ]; then
               composer --working-dir=${{ inputs.PIMCORE_ROOT }} install --prefer-dist --no-scripts --ignore-platform-reqs
             fi
@@ -393,6 +407,7 @@ jobs:
           DRIVER: docker
 
       - name: Build ${{ matrix.name }} image
+        if: matrix.name != 'init' || inputs.INIT
         uses: ./reusable-workflow/.github/actions/build-and-push-pimcore-image
         with:
           DOCKERFILE_TARGET: ${{ matrix.target }}
@@ -416,6 +431,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner on image
         id: trivy-scan
+        if: matrix.name != 'init' || inputs.INIT
         continue-on-error: true
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # v0.36.0
         with:
@@ -481,6 +497,7 @@ jobs:
           NPM_OUTCOME: ${{ needs.vulnerability-scan.outputs.npm-outcome }}
           COMPOSER_OUTCOME: ${{ needs.vulnerability-scan.outputs.composer-outcome }}
           SEMGREP_OUTCOME: ${{ needs.vulnerability-scan.outputs.semgrep-outcome }}
+          INIT: ${{ inputs.INIT }}
           REF: ${{ inputs.PROJECT_REPOSITORY_REF }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
