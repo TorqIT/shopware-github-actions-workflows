@@ -200,7 +200,7 @@ runs:
                 echo "<details>"
                 echo "<summary><strong>$label</strong></summary>"
                 echo ""
-                echo "These are OS-level package vulnerabilities. Rebuild the image — a rebuild pulls in the patched package versions."
+                echo "These may contain OS-level package vulnerabilities that require updates (e.g. `apt update <package>`) to be added to the Dockerfile."
                 echo ""
                 trivy_text=$(cat "./trivy-results-${name}/trivy-${name}.txt" 2>/dev/null || echo "")
                 if [ -n "$trivy_text" ]; then
