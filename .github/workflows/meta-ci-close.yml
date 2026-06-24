@@ -11,7 +11,7 @@ concurrency:
 jobs:
   tear-down-azure-resources:
     name: Tear down CI Azure resources
-    uses: TorqIT/pimcore-azure-provisioning/.github/workflows/ci-close.yml@v2
+    uses: TorqIT/shopware-azure-provisioning/.github/workflows/ci-close.yml@v2
     with:
       DOCKER_COMPOSE_FILE: ./.github/ci/azure/docker-compose.yml
       AZURE_DOCKER_COMPOSE_SERVICE: azure
