@@ -126,24 +126,45 @@ runs:
               for json_file in ./scan-results/npm-raw-*.json; do
                 [ -f "$json_file" ] || continue
                 scan_dir=$(jq -r '._scannedDir // "."' "$json_file" 2>/dev/null || echo ".")
-                rows=$(jq -r '
+                dir_slug=$(echo "$scan_dir" | sed 's|^\./||;s|/|__|g')
+                pkgs_json=$(cat "./scan-results/npm-packages-${dir_slug:-root}.json" 2>/dev/null || echo '[]')
+                rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                  ($pkgs | map({(.name): .version}) | add // {}) as $versions |
                   (.vulnerabilities // {}) | to_entries[] |
                   select((.value.severity == "high" or .value.severity == "critical") and (.value.fixAvailable != false)) |
-                  [.key, (.value.severity | ascii_upcase), (if .value.fixAvailable == true then "auto" else "manual" end)] |
+                  [
+                    .key,
+                    (.value.severity | ascii_upcase),
+                    ($versions[.key] // "unknown"),
+                    (if (.value.fixAvailable | type) == "object" then .value.fixAvailable.version
+                     else
+                       ([(.value.via // [] | .[] | select(type == "object") | .range // ""), (.value.range // "")] |
+                        join(" ") | [scan("<[0-9][^\\s]*")] | map(ltrimstr("<")) | first) // "-"
+                     end),
+                    (if (.value.fixAvailable | type) == "object" and .value.fixAvailable.isSemVerMajor then "force" else "auto" end),
+                    (([.value.via // [] | .[] | select(type == "object") | .url // ""] | map(select(. != "")) | first) // "-")
+                  ] |
                   @tsv
                 ' "$json_file" 2>/dev/null || echo "")
                 [ -z "$rows" ] && continue
                 found_any=true
                 echo "**\`$scan_dir\`**"
                 echo ""
-                echo "| Package | Severity | Command |"
-                echo "|---------|----------|---------|"
-                while IFS=$'\t' read -r pkg severity fix_type; do
-                  if [ "$fix_type" = "auto" ]; then
-                    echo "| \`$pkg\` | $severity | \`npm audit fix --prefix $scan_dir\` |"
+                echo "| Package | Severity | Installed | Fix ≥ | Advisory | Command |"
+                echo "|---------|----------|-----------|-------|----------|---------|"
+                while IFS=$'\t' read -r pkg severity installed fix_ver fix_type advisory_url; do
+                  if [ "$fix_type" = "force" ]; then
+                    cmd="\`npm audit fix --force --prefix $scan_dir\` _(may introduce breaking changes)_"
                   else
-                    echo "| \`$pkg\` | $severity | \`npm audit fix --force --prefix $scan_dir\` _(may introduce breaking changes)_ |"
+                    cmd="\`npm audit fix --prefix $scan_dir\`"
                   fi
+                  if [ "$advisory_url" != "-" ] && [ -n "$advisory_url" ]; then
+                    advisory_id=$(basename "$advisory_url")
+                    advisory_col="[$advisory_id]($advisory_url)"
+                  else
+                    advisory_col="-"
+                  fi
+                  echo "| \`$pkg\` | $severity | \`$installed\` | \`$fix_ver\` | $advisory_col | $cmd |"
                 done <<< "$rows"
                 echo ""
               done
@@ -161,31 +182,55 @@ runs:
               echo "<summary><strong>Composer audit</strong></summary>"
               echo ""
               if [ -f "./scan-results/composer-audit.json" ]; then
-                rows=$(jq -r '
-                  (.packages // []) as $pkgs |
+                pkgs_json=$(cat "./scan-results/composer-packages.json" 2>/dev/null || echo '[]')
+                rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                  ($pkgs | map({(.name): .version}) | add // {}) as $versions |
                   .advisories // {} | to_entries[] |
                   .key as $pkg |
-                  ($pkgs | map(select(.name == $pkg)) | .[0].version // "unknown") as $current_ver |
+                  ($versions[$pkg] // "unknown") as $current_ver |
                   .value[] |
                   select(.ignored != true and (.severity == "high" or .severity == "critical")) |
-                  [$pkg, (.severity | ascii_upcase), $current_ver, (.affectedVersions // ""), (.advisoryId // "")] |
+                  [$pkg, (.severity | ascii_upcase), $current_ver, (.affectedVersions // ""), (.advisoryId // "-"), (.link // "-"), (.cve // "-")] |
                   @tsv
                 ' ./scan-results/composer-audit.json 2>/dev/null || echo "")
                 if [ -n "$rows" ]; then
                   echo "| Package | Severity | Installed | Fix ≥ | Advisory | Command |"
                   echo "|---------|----------|-----------|-------|----------|---------|"
-                  while IFS=$'\t' read -r pkg severity current_ver affected advisory; do
-                    fix_ver=$(echo "$affected" | grep -oE '<[0-9]+\.[0-9]+(\.[0-9]+)?' | tr -d '<' | sort -V | head -1)
+                  while IFS=$'\t' read -r pkg severity current_ver affected advisory link cve; do
+                    fix_ver=$(echo "$affected" | grep -oE '<[0-9]+\.[0-9]+(\.[0-9]+)?' | tr -d '<' | sort -V | head -1 || true)
+                    if [ -z "$fix_ver" ]; then
+                      incl=$(echo "$affected" | grep -oE '<=[0-9]+\.[0-9]+\.[0-9]+' | sed 's/^<=//' | sort -V | head -1 || true)
+                      if [ -n "$incl" ]; then
+                        p=$(echo "$incl" | cut -d. -f3)
+                        fix_ver="$(echo "$incl" | cut -d. -f1-2).$((p + 1))"
+                      fi
+                    fi
                     [ -z "$fix_ver" ] && fix_ver="$affected"
-                    echo "| \`$pkg\` | $severity | \`$current_ver\` | \`$fix_ver\` | $advisory | \`composer update $pkg\` |"
+                    if [ "$link" != "-" ] && [ -n "$link" ]; then
+                      advisory_col="[$advisory]($link)"
+                    else
+                      advisory_col="$advisory"
+                    fi
+                    if [ "$cve" != "-" ] && [ -n "$cve" ]; then
+                      advisory_col="$advisory_col / [$cve](https://nvd.nist.gov/vuln/detail/$cve)"
+                    fi
+                    echo "| \`$pkg\` | $severity | \`$current_ver\` | \`$fix_ver\` | $advisory_col | \`composer update $pkg\` |"
                   done <<< "$rows"
                   echo ""
                 else
-                  echo "No HIGH or CRITICAL advisories found — refer to the [action logs]($LOGS_URL) for lower-severity findings."
+                  if grep -q "affected by security advisories" ./scan-results/composer-audit.txt 2>/dev/null; then
+                    echo "Composer install was blocked — one or more required packages are affected by security advisories. Refer to the [action logs]($LOGS_URL) for the full list of advisory IDs."
+                  else
+                    echo "No HIGH or CRITICAL advisories found — refer to the [action logs]($LOGS_URL) for lower-severity findings."
+                  fi
                   echo ""
                 fi
               else
-                echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL)."
+                if grep -q "affected by security advisories" ./scan-results/composer-audit.txt 2>/dev/null; then
+                  echo "Composer install was blocked — one or more required packages are affected by security advisories. Refer to the [action logs]($LOGS_URL) for the full list of advisory IDs."
+                else
+                  echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL)."
+                fi
                 echo ""
               fi
               echo "</details>"
@@ -197,8 +242,36 @@ runs:
               echo "<details>"
               echo "<summary><strong>Semgrep SAST</strong></summary>"
               echo ""
-              echo "Code-level findings require manual review — refer to the [action logs]($LOGS_URL) for the flagged patterns and file locations."
-              echo ""
+              if [ -f "./scan-results/semgrep.json" ]; then
+                rows=$(jq -r '
+                  .results // [] |
+                  map(select(.extra.severity == "ERROR" or .extra.severity == "WARNING")) |
+                  sort_by(.extra.severity, .path, .start.line) |
+                  .[] |
+                  [
+                    ("[" + (.check_id | split(".") | last) + "](https://semgrep.dev/r/" + .check_id + ")"),
+                    .path,
+                    (.start.line | tostring),
+                    .extra.severity,
+                    (.extra.message | gsub("[\n\r\t]"; " ") | .[0:120])
+                  ] |
+                  @tsv
+                ' ./scan-results/semgrep.json 2>/dev/null || echo "")
+                if [ -n "$rows" ]; then
+                  echo "| Rule | Location | Severity | Message |"
+                  echo "|------|----------|----------|---------|"
+                  while IFS=$'\t' read -r rule file line severity message; do
+                    echo "| $rule | \`$file:$line\` | $severity | $message |"
+                  done <<< "$rows"
+                  echo ""
+                else
+                  echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL) for the flagged patterns and file locations."
+                  echo ""
+                fi
+              else
+                echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL) for the flagged patterns and file locations."
+                echo ""
+              fi
               echo "</details>"
               echo ""
             fi
