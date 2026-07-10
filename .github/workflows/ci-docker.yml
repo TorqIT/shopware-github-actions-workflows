@@ -468,6 +468,7 @@ jobs:
           scanners: "vuln"
           severity: "CRITICAL,HIGH"
           trivyignores: ${{ inputs.TRIVYIGNORE_PATH }}
+          timeout: "15m"
 
       - name: Print Trivy results to log
         if: always()
