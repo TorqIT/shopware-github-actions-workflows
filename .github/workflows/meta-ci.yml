@@ -24,12 +24,9 @@ jobs:
   skeleton-ci:
     name: "Test CI workflow against Shopware skeleton"
     uses: ./.github/workflows/ci-docker.yml
-    strategy:
-      fail-fast: false
-      matrix:
-        branch: [main]
     with:
       PROJECT_REPOSITORY: TorqIT/shopware-skeleton
+      PROJECT_REPOSITORY_REF: main
       SHOPWARE_ROOT: src
       E2E_TESTS_DIRECTORY: e2e
       E2E_TESTS_HOSTNAME: "demo.localhost.torq"
@@ -44,18 +41,11 @@ jobs:
 
   skeleton-ci-azure:
     name: "Test Azure CD workflow against Shopware skeleton"
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - version: "6.7"
-            parameters_file: "./.github/ci/azure/parameters.json"
-            skeleton_ref: main
     uses: ./.github/workflows/meta-ci-azure.yml
     with:
-      ENVIRONMENT: ${{ matrix.version }}
-      PARAMETERS_FILE: ${{ matrix.parameters_file }}
-      PROJECT_REPOSITORY_REF: ${{ matrix.skeleton_ref }}
+      ENVIRONMENT: 6.7
+      PARAMETERS_FILE: "./.github/ci/azure/parameters.json"
+      PROJECT_REPOSITORY_REF: main
     secrets:
       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
       CI_SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.CI_SERVICE_PRINCIPAL_PASSWORD }}
