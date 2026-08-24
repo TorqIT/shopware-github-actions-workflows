@@ -30,7 +30,7 @@ on:
 jobs:
   provision:
     name: "Provision Azure environment"
-    uses: TorqIT/shopware-azure-provisioning/.github/workflows/provision-azure-environment.yml@v2
+    uses: TorqIT/shopware-azure-provisioning/.github/workflows/provision-azure-environment.yml@upstream-merge-202608
     with:
       ENVIRONMENT: ${{ inputs.ENVIRONMENT }}
       PARAMETERS_FILE: ${{ inputs.PARAMETERS_FILE }}
