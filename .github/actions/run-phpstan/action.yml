@@ -64,6 +64,9 @@ runs:
         set -Eeuo pipefail
 
         docker run --rm \
+          -e PIMCORE_PRODUCT_KEY='${{ inputs.PIMCORE_PRODUCT_KEY }}' \
+          -e PIMCORE_INSTANCE_IDENTIFIER='${{ inputs.PIMCORE_INSTANCE_IDENTIFIER }}' \
+          -e PIMCORE_ENCRYPTION_SECRET='${{ inputs.PIMCORE_ENCRYPTION_SECRET }}' \
           --entrypoint /bin/bash \
           phpstan:test \
           -c '
@@ -99,7 +102,7 @@ runs:
             fi
 
             echo "Running PHPStan..."
-            $RUN_AS /var/www/html/vendor/bin/phpstan analyse --no-progress --error-format=github ${{ inputs.PHPSTAN_ARGS }}
+            $RUN_AS /var/www/html/vendor/bin/phpstan analyse --no-progress ${{ inputs.PHPSTAN_ARGS }}
             # phpstan will exit above with a non-zero code if it finds any issues
             echo "PHPStan found no issues!"
           '
