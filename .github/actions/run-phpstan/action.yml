@@ -1,0 +1,76 @@
+name: "Run PHPStan"
+description: "Runs PHPStan static analysis"
+inputs:
+  DOCKERFILE:
+    description: "Path to Dockerfile"
+    required: true
+  DOCKERFILE_TARGET:
+    description: "Build target in Dockerfile"
+    required: true
+  BUILD_TIME_ARGS:
+    required: true
+    description: "A JSON object containing a list of args and their values in key: value format"
+  BUILD_TIME_SECRETS:
+    required: true
+    description: "JSON object containing a list of build-time secrets and their values in key: value format"
+  SHOPWARE_ROOT:
+    required: true
+    description: "The path (relative to the project's root) in which the Shopware files exist"
+  SHOPWARE_COMPOSER_TOKEN:
+    required: true
+    description: "The value of your project's Shopware Composer token"
+  PHPSTAN_ARGS:
+    required: false
+    default: ""
+    description: "Additional arguments to append to the phpstan analyse command"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build image
+      uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
+      with:
+        DOCKERFILE_PATH: ${{ inputs.DOCKERFILE }}
+        DOCKERFILE_TARGET: ${{ inputs.DOCKERFILE_TARGET }}
+        SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+        BUILD_TIME_ARGS: ${{ inputs.BUILD_TIME_ARGS }}
+        BUILD_TIME_SECRETS: ${{ inputs.BUILD_TIME_SECRETS }}
+        SHOPWARE_COMPOSER_TOKEN: ${{ inputs.SHOPWARE_COMPOSER_TOKEN }}
+        CACHE_TO: type=gha,mode=max
+        CACHE_FROM: type=gha
+        PUSH: "false"
+        LOAD: "true"
+        TAGS: "phpstan:test"
+
+    - name: Run PHPStan
+      shell: bash
+      run: |
+        set -Eeuo pipefail
+
+        docker run --rm \
+          --entrypoint /bin/bash \
+          phpstan:test \
+          -c '
+            set -Eeuo pipefail
+
+            if [ "$(id -u)" -eq 0 ]; then
+              RUN_AS="runuser -u www-data --"
+            else
+              RUN_AS=""
+            fi
+
+            if [ ! -f "/var/www/html/phpstan.neon" ] && [ ! -f "/var/www/html/phpstan.neon.dist" ] && [ ! -f "/var/www/html/phpstan.dist.neon" ]; then
+              echo "No phpstan.neon(.dist) file found in the project - skipping PHPStan analysis"
+              exit 0
+            fi
+
+            if [ ! -f "/var/www/html/vendor/bin/phpstan" ]; then
+              echo "PHPStan not found in vendor/bin - installing it..."
+              $RUN_AS composer require --working-dir=/var/www/html --dev phpstan/phpstan --no-scripts
+            fi
+
+            echo "Running PHPStan..."
+            $RUN_AS /var/www/html/vendor/bin/phpstan analyse --no-progress --error-format=github ${{ inputs.PHPSTAN_ARGS }}
+            # phpstan will exit above with a non-zero code if it finds any issues
+            echo "PHPStan found no issues!"
+          '

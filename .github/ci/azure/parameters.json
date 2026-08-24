@@ -1,0 +1,208 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "subscriptionId": {
+      "value": "27cab9a2-4a98-4eab-86ca-296494dbbcf2"
+    },
+    "tenantId": {
+      "value": "6f8ae12a-9b31-4877-b46f-c0590040b1fb"
+    },
+    "resourceGroupName": {
+      "value": "Shopware-Azure-Test"
+    },
+    "provisionServicePrincipal": {
+      "value": false
+    },
+    "location": {
+      "value": "canadacentral"
+    },
+    "keyVaultName": {
+      "value": "shopware-azure-kv-test"
+    },
+    "keyVaultEnablePurgeProtection": {
+      "value": false
+    },
+    "keyVaultGenerateRandomSecrets": {
+      "value": true
+    },
+    "containerRegistryName": {
+      "value": "shopwareazurecrtest"
+    },
+    "containerRegistrySku": {
+      "value": "Basic"
+    },
+    "virtualNetworkName": {
+      "value": "shopware-azure-vnet-test"
+    },
+    "virtualNetworkPrivateEndpointsSubnetName": {
+      "value": "private-endpoints"
+    },
+    "storageAccountName": {
+      "value": "shopwareazuresatest"
+    },
+    "storageAccountFileShares": {
+      "value": [
+        {
+          "name": "uploads"
+        }
+      ]
+    },
+    "storageAccountLongTermBackups": {
+      "value": false
+    },
+    "storageAccountProvisionFrontDoorCdn": {
+      "value": true
+    },
+    "storageAccountFrontDoorCdnProfileName": {
+      "value": "shopware-azure-cdn-test"
+    },
+    "storageAccountFrontDoorCdnEndpointName": {
+      "value": "shopware-azure-cdn-endpoint-test"
+    },
+    "databaseServerName": {
+      "value": "shopware-azure-db-test"
+    },
+    "containerAppsEnvironmentName": {
+      "value": "shopware-azure-cae-test"
+    },
+    "containerAppsEnvironmentUseWorkloadProfiles": {
+      "value": true
+    },
+    "initContainerAppJobName": {
+      "value": "shopware-azure-init-test"
+    },
+    "initContainerAppJobImageName": {
+      "value": "init"
+    },
+    "initContainerAppJobCpuCores": {
+      "value": "1.5"
+    },
+    "initContainerAppJobMemory": {
+      "value": "3Gi"
+    },
+    "phpContainerAppExternal": {
+      "value": true
+    },
+    "phpContainerAppName": {
+      "value": "shopware-azure-php-test"
+    },
+    "phpContainerAppCustomDomains": {
+      "value": []
+    },
+    "phpContainerAppImageName": {
+      "value": "php"
+    },
+    "phpContainerAppMinReplicas": {
+      "value": 0
+    },
+    "phpContainerAppProvisionHttpScaleRule": {
+      "value": true
+    },
+    "phpContainerAppHttpScaleRuleConcurrentRequestsThreshold": {
+      "value": 30
+    },
+    "phpContainerAppProvisionStartupProbe": {
+      "value": true
+    },
+    "phpContainerAppStartupProbePath": {
+      "value": "/"
+    },
+    "phpContainerAppStartupProbeInitialDelaySeconds": {
+      "value": 60
+    },
+    "phpContainerAppStartupProbePeriodSeconds": {
+      "value": 10
+    },
+    "phpContainerAppStartupProbeFailureThreshold": {
+      "value": 30
+    },
+    "phpContainerAppIpSecurityRestrictions": {
+      "value": [
+        {
+          "name": "Test rule 1",
+          "action": "Allow",
+          "ipAddressRange": "206.172.88.232"
+        },
+        {
+          "name": "Test rule 2",
+          "action": "Allow",
+          "ipAddressRange": "206.172.88.233"
+        }
+      ]
+    },
+    "supervisordContainerAppName": {
+      "value": "shopware-azure-supervisord-test"
+    },
+    "supervisordContainerAppImageName": {
+      "value": "supervisord"
+    },
+    "supervisordContainerAppCpuCores": {
+      "value": "0.5"
+    },
+    "supervisordContainerAppMemory": {
+      "value": "1Gi"
+    },
+    "appEnv": {
+      "value": "test_env"
+    },
+    "appUrl": {
+      "value": "my-app.domain.com"
+    },
+    "appInstallCurrency": {
+      "value": "CAD"
+    },
+    "appSalesChannelName": {
+      "value": "My Sales Channel"
+    },
+    "appSalesChannelCurrencyId": {
+      "value": "018f62358a357230852fd8838c604b60"
+    },
+    "appSalesChannelId": {
+      "value": "018f62358a357230852fd8838c604b60"
+    },
+    "additionalEnvVars": {
+      "value": []
+    },
+    "additionalSecrets": {
+      "value": {
+        "array": []
+      }
+    },
+    "fileStorageAccountName": {
+      "value": "shopwareazurefilestest"
+    },
+    "fileStorageAccountFileShares": {
+      "value": [
+        {
+          "name": "assets",
+          "maxSizeGB": 120
+        }
+      ]
+    },
+    "additionalVolumesAndMounts": {
+      "value": [
+        {
+          "storageAccountName": "shopwareazurefilestest",
+          "fileShareName": "assets",
+          "mountName": "assets",
+          "mountAccessMode": "ReadWrite",
+          "volumeName": "assets",
+          "mountPath": "/var/www/html/public/var/assets"
+        },
+        {
+          "storageAccountName": "shopwareazuresatest",
+          "fileShareName": "uploads",
+          "mountName": "uploads",
+          "mountAccessMode": "ReadWrite",
+          "volumeName": "uploads",
+          "mountPath": "/var/www/html/uploads",
+          "storageType": "AzureFile"
+        }
+      ]
+    },
+    "provisionMetricAlerts": {
+      "value": true
+    }
+  }
+}

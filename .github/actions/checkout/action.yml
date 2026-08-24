@@ -43,7 +43,7 @@ runs:
       uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       if: inputs.GITHUB_APP_CHECKOUT == 'true'
       with:
-        app-id: ${{ inputs.GITHUB_APP_ID }}
+        client-id: ${{ inputs.GITHUB_APP_ID }}
         private-key: ${{ inputs.GITHUB_APP_PRIVATE_KEY }}
         repositories: ${{ steps.parse_project_repo_name.outputs.repository }}
 
@@ -55,7 +55,7 @@ runs:
         fi
 
     - name: Checkout .gitmodules file, if using submodules
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       if: inputs.SUBMODULES == 'true'
       with:
         repository: ${{ inputs.PROJECT_REPOSITORY }}
@@ -91,12 +91,12 @@ runs:
       uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       if: inputs.GITHUB_APP_CHECKOUT == 'true'
       with:
-        app-id: ${{ inputs.GITHUB_APP_ID }}
+        client-id: ${{ inputs.GITHUB_APP_ID }}
         private-key: ${{ inputs.GITHUB_APP_PRIVATE_KEY }}
         repositories: ${{ steps.parse_repo_names.outputs.repositories }}
 
     - name: Checkout project repo and any submodules
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         repository: ${{ inputs.PROJECT_REPOSITORY }}
         ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
