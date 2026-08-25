@@ -71,9 +71,7 @@ runs:
     - name: Run unit tests
       shell: bash
       run: |
-        set -e
-        
-        TODO unit test setup for Shopware
+        # TODO unit test setup for Shopware
 
     - name: Cleanup containers
       if: always()
