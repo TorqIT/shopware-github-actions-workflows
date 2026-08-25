@@ -417,7 +417,7 @@ jobs:
           DRIVER: docker
 
       - name: Build ${{ matrix.name }} image
-        if: matrix.name != 'init'
+        if: matrix.name != 'init' || inputs.INIT
         uses: ./reusable-workflow/.github/actions/build-and-push-shopware-image
         with:
           DOCKERFILE_TARGET: ${{ matrix.target }}
