@@ -45,7 +45,7 @@ jobs:
     with:
       ENVIRONMENT: 6.7
       PARAMETERS_FILE: "./.github/ci/azure/parameters.json"
-      PROJECT_REPOSITORY_REF: main
+      PROJECT_REPOSITORY_REF: fix/default-env-vars
     secrets:
       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
       CI_SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.CI_SERVICE_PRINCIPAL_PASSWORD }}
