@@ -362,11 +362,6 @@ jobs:
           - name: php
             dockerfile: ${{ inputs.PHP_DOCKERFILE }}
             target: ${{ inputs.PHP_DOCKER_TARGET }}
-            npm_build: ${{ inputs.NPM_BUILD }}
-            npm_spa: ${{ inputs.NPM_SPA }}
-            spa_twig: ${{ inputs.SPA_TWIG }}
-            frontend_root: ${{ inputs.FRONTEND_ROOT }}
-            npm_run_cmd: ${{ inputs.NPM_RUN_CMD }}
           - name: supervisord
             dockerfile: ${{ inputs.SUPERVISORD_DOCKERFILE }}
             target: ${{ inputs.SUPERVISORD_TARGET }}
