@@ -9,7 +9,7 @@
       "value": "6f8ae12a-9b31-4877-b46f-c0590040b1fb"
     },
     "resourceGroupName": {
-      "value": "Shopware-Azure-GH-CI"
+      "value": "Shopware-GH-CI"
     },
     "provisionServicePrincipal": {
       "value": false
@@ -127,6 +127,12 @@
     },
     "supervisordContainerAppMemory": {
       "value": "1Gi"
+    },
+    "provisionOpensearch": {
+      "value": true
+    },
+    "opensearchContainerAppName": {
+      "value": "shopware-gh-opnsrch-ci"
     },
     "appEnv": {
       "value": "test_env"
