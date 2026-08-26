@@ -72,3 +72,5 @@ jobs:
     secrets:
       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.CI_SERVICE_PRINCIPAL_PASSWORD }}
       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
+      
