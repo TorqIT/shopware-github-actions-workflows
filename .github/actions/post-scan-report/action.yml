@@ -129,17 +129,55 @@ runs:
                 dir_slug=$(echo "$scan_dir" | sed 's|^\./||;s|/|__|g')
                 pkgs_json=$(cat "./scan-results/npm-packages-${dir_slug:-root}.json" 2>/dev/null || echo '[]')
                 rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                  def norm(v):
+                    (v // "" | ascii_downcase | ltrimstr("v")) as $s |
+                    ($s | [scan("[0-9]+")] | map(tonumber)) as $parts |
+                    ($parts + [0,0,0,0,0,0])[0:6];
+                  def vcmp(a; b):
+                    (norm(a)) as $a | (norm(b)) as $b |
+                    ([range(0;6)] | map($a[.] - $b[.]) | map(select(. != 0)) | first) // 0;
+                  def satisfies(cur; constraint):
+                    if (constraint == "") then true
+                    elif (constraint | startswith(">=")) then vcmp(cur; constraint[2:]) >= 0
+                    elif (constraint | startswith("<=")) then vcmp(cur; constraint[2:]) <= 0
+                    elif (constraint | startswith("!=")) then vcmp(cur; constraint[2:]) != 0
+                    elif (constraint | startswith("==")) then vcmp(cur; constraint[2:]) == 0
+                    elif (constraint | startswith(">")) then vcmp(cur; constraint[1:]) > 0
+                    elif (constraint | startswith("<")) then vcmp(cur; constraint[1:]) < 0
+                    else true
+                    end;
+                  def upper_bound(r):
+                    r | map(select(startswith("<"))) |
+                    map(if startswith("<=") then .[2:] else .[1:] end) | first;
+                  # npm ranges OR multiple disjoint windows with " || " and AND
+                  # constraints within a window with a space, e.g.
+                  # "<4.17.11 || >=4.17.20 <4.17.21" (a CVE reintroduced later)
+                  def npm_ranges(affected):
+                    (affected // "" | split("||") | map(
+                        gsub("^[ \t]+|[ \t]+$"; "") | split(" ") | map(select(. != ""))
+                      )
+                    );
+                  def fix_for(cur; affected):
+                    (npm_ranges(affected)) as $ranges |
+                    ($ranges | map(select(. as $r | $r | map(satisfies(cur; .)) | all))) as $matching |
+                    ($matching | map(upper_bound(.)) | map(select(. != null))) as $matchfixes |
+                    if ($matchfixes | length) > 0 then
+                      ($matchfixes | sort_by(norm(.)) | first)
+                    else
+                      ($ranges | map(upper_bound(.)) | map(select(. != null))) as $allfixes |
+                      if ($allfixes | length) > 0 then ($allfixes | sort_by(norm(.)) | last) else null end
+                    end;
                   ($pkgs | map({(.name): .version}) | add // {}) as $versions |
                   (.vulnerabilities // {}) | to_entries[] |
                   select((.value.severity == "high" or .value.severity == "critical") and (.value.fixAvailable != false)) |
+                  ($versions[.key] // "unknown") as $current_ver |
+                  (.value.range // ([.value.via // [] | .[] | select(type == "object") | .range // ""] | map(select(. != "")) | join(" || "))) as $affected |
                   [
                     .key,
                     (.value.severity | ascii_upcase),
-                    ($versions[.key] // "unknown"),
+                    $current_ver,
                     (if (.value.fixAvailable | type) == "object" then .value.fixAvailable.version
-                     else
-                       ([(.value.via // [] | .[] | select(type == "object") | .range // ""), (.value.range // "")] |
-                        join(" ") | [scan("<[0-9][^\\s]*")] | map(ltrimstr("<")) | first) // "-"
+                     else (fix_for($current_ver; $affected) // $affected // "-")
                      end),
                     (if (.value.fixAvailable | type) == "object" and .value.fixAvailable.isSemVerMajor then "force" else "auto" end),
                     (([.value.via // [] | .[] | select(type == "object") | .url // ""] | map(select(. != "")) | first) // "-")
