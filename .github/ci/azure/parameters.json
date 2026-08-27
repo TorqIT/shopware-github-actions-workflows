@@ -110,7 +110,7 @@
         {
           "name": "Test rule 1",
           "action": "Allow",
-          "ipAddressRange": "206.172.88.232"
+          "ipAddressRange": "70.49.219.134"
         },
         {
           "name": "Test rule 2",
