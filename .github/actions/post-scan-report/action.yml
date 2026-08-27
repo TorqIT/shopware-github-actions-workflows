@@ -129,17 +129,55 @@ runs:
                 dir_slug=$(echo "$scan_dir" | sed 's|^\./||;s|/|__|g')
                 pkgs_json=$(cat "./scan-results/npm-packages-${dir_slug:-root}.json" 2>/dev/null || echo '[]')
                 rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                  def norm(v):
+                    (v // "" | ascii_downcase | ltrimstr("v")) as $s |
+                    ($s | [scan("[0-9]+")] | map(tonumber)) as $parts |
+                    ($parts + [0,0,0,0,0,0])[0:6];
+                  def vcmp(a; b):
+                    (norm(a)) as $a | (norm(b)) as $b |
+                    ([range(0;6)] | map($a[.] - $b[.]) | map(select(. != 0)) | first) // 0;
+                  def satisfies(cur; constraint):
+                    if (constraint == "") then true
+                    elif (constraint | startswith(">=")) then vcmp(cur; constraint[2:]) >= 0
+                    elif (constraint | startswith("<=")) then vcmp(cur; constraint[2:]) <= 0
+                    elif (constraint | startswith("!=")) then vcmp(cur; constraint[2:]) != 0
+                    elif (constraint | startswith("==")) then vcmp(cur; constraint[2:]) == 0
+                    elif (constraint | startswith(">")) then vcmp(cur; constraint[1:]) > 0
+                    elif (constraint | startswith("<")) then vcmp(cur; constraint[1:]) < 0
+                    else true
+                    end;
+                  def upper_bound(r):
+                    r | map(select(startswith("<"))) |
+                    map(if startswith("<=") then .[2:] else .[1:] end) | first;
+                  # npm ranges OR multiple disjoint windows with " || " and AND
+                  # constraints within a window with a space, e.g.
+                  # "<4.17.11 || >=4.17.20 <4.17.21" (a CVE reintroduced later)
+                  def npm_ranges(affected):
+                    (affected // "" | split("||") | map(
+                        gsub("^[ \t]+|[ \t]+$"; "") | split(" ") | map(select(. != ""))
+                      )
+                    );
+                  def fix_for(cur; affected):
+                    (npm_ranges(affected)) as $ranges |
+                    ($ranges | map(select(. as $r | $r | map(satisfies(cur; .)) | all))) as $matching |
+                    ($matching | map(upper_bound(.)) | map(select(. != null))) as $matchfixes |
+                    if ($matchfixes | length) > 0 then
+                      ($matchfixes | sort_by(norm(.)) | first)
+                    else
+                      ($ranges | map(upper_bound(.)) | map(select(. != null))) as $allfixes |
+                      if ($allfixes | length) > 0 then ($allfixes | sort_by(norm(.)) | last) else null end
+                    end;
                   ($pkgs | map({(.name): .version}) | add // {}) as $versions |
                   (.vulnerabilities // {}) | to_entries[] |
                   select((.value.severity == "high" or .value.severity == "critical") and (.value.fixAvailable != false)) |
+                  ($versions[.key] // "unknown") as $current_ver |
+                  (.value.range // ([.value.via // [] | .[] | select(type == "object") | .range // ""] | map(select(. != "")) | join(" || "))) as $affected |
                   [
                     .key,
                     (.value.severity | ascii_upcase),
-                    ($versions[.key] // "unknown"),
+                    $current_ver,
                     (if (.value.fixAvailable | type) == "object" then .value.fixAvailable.version
-                     else
-                       ([(.value.via // [] | .[] | select(type == "object") | .range // ""), (.value.range // "")] |
-                        join(" ") | [scan("<[0-9][^\\s]*")] | map(ltrimstr("<")) | first) // "-"
+                     else (fix_for($current_ver; $affected) // $affected // "-")
                      end),
                     (if (.value.fixAvailable | type) == "object" and .value.fixAvailable.isSemVerMajor then "force" else "auto" end),
                     (([.value.via // [] | .[] | select(type == "object") | .url // ""] | map(select(. != "")) | first) // "-")
@@ -184,35 +222,56 @@ runs:
               if [ -f "./scan-results/composer-audit.json" ]; then
                 pkgs_json=$(cat "./scan-results/composer-packages.json" 2>/dev/null || echo '[]')
                 rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                  def norm(v):
+                    (v // "" | ascii_downcase | ltrimstr("v")) as $s |
+                    ($s | [scan("[0-9]+")] | map(tonumber)) as $parts |
+                    ($parts + [0,0,0,0,0,0])[0:6];
+                  def vcmp(a; b):
+                    (norm(a)) as $a | (norm(b)) as $b |
+                    ([range(0;6)] | map($a[.] - $b[.]) | map(select(. != 0)) | first) // 0;
+                  def satisfies(cur; constraint):
+                    if (constraint == "") then true
+                    elif (constraint | startswith(">=")) then vcmp(cur; constraint[2:]) >= 0
+                    elif (constraint | startswith("<=")) then vcmp(cur; constraint[2:]) <= 0
+                    elif (constraint | startswith("!=")) then vcmp(cur; constraint[2:]) != 0
+                    elif (constraint | startswith("==")) then vcmp(cur; constraint[2:]) == 0
+                    elif (constraint | startswith(">")) then vcmp(cur; constraint[1:]) > 0
+                    elif (constraint | startswith("<")) then vcmp(cur; constraint[1:]) < 0
+                    else true
+                    end;
+                  def upper_bound(r):
+                    r | map(select(startswith("<"))) |
+                    map(if startswith("<=") then .[2:] else .[1:] end) | first;
+                  # Pick the upper bound of whichever disjoint range (affectedVersions is
+                  # "|"-separated, since a package can have separate vulnerable windows,
+                  # e.g. a CVE reintroduced in a later series) the installed version falls
+                  # into, so the displayed fix is always > installed. Falls back to the
+                  # highest upper bound across all ranges only when none match.
+                  def fix_for(cur; affected):
+                    (affected // "" | split("|") | map(split(",") | map(select(. != "")))) as $ranges |
+                    ($ranges | map(select(. as $r | $r | map(satisfies(cur; .)) | all))) as $matching |
+                    ($matching | map(upper_bound(.)) | map(select(. != null))) as $matchfixes |
+                    if ($matchfixes | length) > 0 then
+                      ($matchfixes | sort_by(norm(.)) | first)
+                    else
+                      ($ranges | map(upper_bound(.)) | map(select(. != null))) as $allfixes |
+                      if ($allfixes | length) > 0 then ($allfixes | sort_by(norm(.)) | last) else null end
+                    end;
                   ($pkgs | map({(.name): .version}) | add // {}) as $versions |
                   .advisories // {} | to_entries[] |
                   .key as $pkg |
                   ($versions[$pkg] // "unknown") as $current_ver |
                   .value[] |
                   select(.ignored != true and (.severity == "high" or .severity == "critical")) |
-                  [$pkg, (.severity | ascii_upcase), $current_ver, (.affectedVersions // ""), (.advisoryId // "-"), (.link // "-"), (.cve // "-")] |
+                  [$pkg, (.severity | ascii_upcase), $current_ver,
+                   (fix_for($current_ver; .affectedVersions) // .affectedVersions // ""),
+                   (.advisoryId // "-"), (.link // "-"), (.cve // "-")] |
                   @tsv
                 ' ./scan-results/composer-audit.json 2>/dev/null || echo "")
                 if [ -n "$rows" ]; then
                   echo "| Package | Severity | Installed | Fix ≥ | Advisory | Command |"
                   echo "|---------|----------|-----------|-------|----------|---------|"
-                  while IFS=$'\t' read -r pkg severity current_ver affected advisory link cve; do
-                    clean_ver=$(echo "$current_ver" | sed 's/^v//')
-                    major=$(echo "$clean_ver" | cut -d. -f1)
-                    # Prefer the fix version from the same major version branch as installed
-                    fix_ver=$(echo "$affected" | grep -oE "<${major}\.[0-9]+(\.[0-9]+)?" | tr -d '<' | sort -V | head -1 2>/dev/null || true)
-                    if [ -z "$fix_ver" ]; then
-                      incl=$(echo "$affected" | grep -oE "<=${major}\.[0-9]+\.[0-9]+" | sed 's/^<=//' | sort -V | head -1 2>/dev/null || true)
-                      if [ -n "$incl" ]; then
-                        p=$(echo "$incl" | cut -d. -f3)
-                        fix_ver="$(echo "$incl" | cut -d. -f1-2).$((p + 1))"
-                      fi
-                    fi
-                    # Fall back to the highest fix version across all branches
-                    if [ -z "$fix_ver" ]; then
-                      fix_ver=$(echo "$affected" | grep -oE '<[0-9]+\.[0-9]+(\.[0-9]+)?' | tr -d '<' | sort -V | tail -1 2>/dev/null || true)
-                    fi
-                    [ -z "$fix_ver" ] && fix_ver="$affected"
+                  while IFS=$'\t' read -r pkg severity current_ver fix_ver advisory link cve; do
                     if [ "$link" != "-" ] && [ -n "$link" ]; then
                       advisory_col="[$advisory]($link)"
                     else
