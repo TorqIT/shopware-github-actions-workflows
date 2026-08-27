@@ -56,6 +56,11 @@ on:
         type: string
         default: "messenger_messages,sessions"
         description: Comma-separated list of table names to ignore during dump (e.g., "messenger_messages,sessions")
+      IGNORE_TABLE_PATTERNS:
+        required: false
+        type: string
+        default: "application_logs_archive_.*,messenger_messages_.*"
+        description: Regex pattern for table names to ignore during dump (e.g., "cache_.*,temp_.*")
       MYDUMPER_THREADS:
         required: false
         type: number
@@ -84,14 +89,14 @@ jobs:
     steps:
       - name: Get workflow version
         id: workflow-version
-        uses: canonical/get-workflow-version-action@b21f2a1dad0467fd79081fa16dad4f4935fc6253 # v1.0.3
+        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
         with:
           repository-name: TorqIT/shopware-github-actions-workflows
           file-name: job-azure-mysql-backup.yml
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout workflow repository to use composite actions
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
           ref: ${{ steps.workflow-version.outputs.sha }}
@@ -164,6 +169,30 @@ jobs:
               if [ -n "$table" ]; then
                 echo "$dbName.$table" >> "$OMIT_FILE"
                 echo "Will exclude data for table: $table"
+              fi
+            done
+          fi
+
+          # Query database for tables matching patterns and add them to omit file
+          if [ -n "${{ inputs.IGNORE_TABLE_PATTERNS }}" ]; then
+            IFS=',' read -ra PATTERNS <<< "${{ inputs.IGNORE_TABLE_PATTERNS }}"
+            for pattern in "${PATTERNS[@]}"; do
+              pattern=$(echo "$pattern" | xargs)
+              if [ -n "$pattern" ]; then
+                echo "Finding tables matching pattern: $pattern"
+                
+                MYSQL_PWD="${{ secrets.AZURE_MYSQL_PASSWORD }}" \
+                  mysql \
+                  -h "${{ vars.AZURE_MYSQL_SERVER }}.mysql.database.azure.com" \
+                  -P "3306" \
+                  -u "${{ vars.AZURE_MYSQL_USERNAME || 'adminuser' }}" \
+                  --ssl-mode=PREFERRED \
+                  -N -s \
+                  -e "SELECT CONCAT('${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }}.', table_name) \
+                      FROM information_schema.tables \
+                      WHERE table_schema = '${{ vars.AZURE_MYSQL_DATABASE || 'shopware' }}' \
+                      AND table_name REGEXP '$pattern';" \
+                  >> "$OMIT_FILE"
               fi
             done
           fi
@@ -242,7 +271,7 @@ jobs:
 
       - name: Send job status to Slack
         if: ${{ !cancelled() }}
-        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c # v3.0.3
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
           webhook: ${{ secrets.SLACK_BACKUPS_WEBHOOK_URL }}
           webhook-type: incoming-webhook

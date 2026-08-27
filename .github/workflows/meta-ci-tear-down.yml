@@ -1,0 +1,24 @@
+name: Tear down Azure resources for CI
+
+on:
+  # Tear down Azure resources every midnight, and also when a PR is closed
+  schedule:
+    - cron: "0 0 * * *"
+  pull_request:
+    types: closed
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.repository }}__${{ github.ref }}-ci-tear-down
+  cancel-in-progress: true
+
+jobs:
+  tear-down-azure-resources:
+    name: Tear down CI Azure resources
+    uses: TorqIT/shopware-azure-provisioning/.github/workflows/tear-down-azure-resources.yml@main
+    with:
+      SERVICE_PRINCIPAL_ID: ${{ vars.CI_SERVICE_PRINCIPAL_ID }}
+      PARAMETERS_FILE: "./.github/ci/azure/parameters.json"
+      FAIL_ON_ERROR: ${{ github.event_name == 'pull_request' }}
+    secrets:
+      SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.CI_SERVICE_PRINCIPAL_PASSWORD }}

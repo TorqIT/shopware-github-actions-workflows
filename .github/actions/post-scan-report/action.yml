@@ -1,0 +1,347 @@
+name: "Post Security Scan Results"
+description: "Posts security scan results as a PR comment, creating or updating an existing comment"
+
+inputs:
+  NPM_OUTCOME:
+    required: true
+    description: "Outcome of the npm vulnerability scan (success/failure/skipped)"
+  COMPOSER_OUTCOME:
+    required: true
+    description: "Outcome of the Composer vulnerability scan (success/failure/skipped)"
+  SEMGREP_OUTCOME:
+    required: true
+    description: "Outcome of the Semgrep SAST scan (success/failure/skipped)"
+  INIT:
+    required: false
+    default: "true"
+    description: "Whether the project uses an init container (omits the init Trivy row when false)"
+  REF:
+    required: true
+    description: "The branch/ref name used in the comment marker for deduplication"
+  GITHUB_TOKEN:
+    required: true
+    description: "GitHub token for posting PR comments (requires pull-requests: write)"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download scan results
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: scan-results
+        path: ./scan-results
+      continue-on-error: true
+
+    - name: Download Trivy results (init)
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: trivy-results-init
+        path: ./trivy-results-init
+      continue-on-error: true
+
+    - name: Download Trivy results (php)
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: trivy-results-php
+        path: ./trivy-results-php
+      continue-on-error: true
+
+    - name: Download Trivy results (supervisord)
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: trivy-results-supervisord
+        path: ./trivy-results-supervisord
+      continue-on-error: true
+
+    - name: Post security scan results to PR
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      run: |
+        npm_outcome="${{ inputs.NPM_OUTCOME }}"
+        composer_outcome="${{ inputs.COMPOSER_OUTCOME }}"
+        semgrep_outcome="${{ inputs.SEMGREP_OUTCOME }}"
+        php_outcome=$(cat ./trivy-results-php/trivy-php-status.txt 2>/dev/null || echo "unknown")
+        supervisord_outcome=$(cat ./trivy-results-supervisord/trivy-supervisord-status.txt 2>/dev/null || echo "unknown")
+
+        status_icon() {
+          case "$1" in
+            success) echo "✅ Passed" ;;
+            failure) echo "❌ Failed" ;;
+            skipped) echo "❌ Skipped" ;;
+            *) echo "⚠️ Unknown" ;;
+          esac
+        }
+
+        if [[ "${{ inputs.INIT }}" == "true" ]]; then
+          init_outcome=$(cat ./trivy-results-init/trivy-init-status.txt 2>/dev/null || echo "unknown")
+          labels=("npm audit" "Composer audit" "Semgrep SAST" "Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
+          outcomes=("$npm_outcome" "$composer_outcome" "$semgrep_outcome" "$init_outcome" "$php_outcome" "$supervisord_outcome")
+        else
+          labels=("npm audit" "Composer audit" "Semgrep SAST" "Trivy (php image)" "Trivy (supervisord image)")
+          outcomes=("$npm_outcome" "$composer_outcome" "$semgrep_outcome" "$php_outcome" "$supervisord_outcome")
+        fi
+
+        failure_count=0
+        for i in "${!outcomes[@]}"; do
+          if [ "${outcomes[$i]}" = "failure" ] || [ "${outcomes[$i]}" = "skipped" ]; then
+            failure_count=$((failure_count + 1))
+          fi
+        done
+
+        LOGS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+        {
+          echo "<!-- vulnerability-scan-results-${{ inputs.REF }} -->"
+          echo "## Security Scan Results for ${{ inputs.REF }}"
+          echo ""
+
+          if [ "$failure_count" -gt 0 ]; then
+            echo "> [!CAUTION]"
+            echo "> **$failure_count scan(s) failed** — action required. See below for what to fix."
+          else
+            echo "> [!TIP]"
+            echo "> All scans passed — no action required."
+          fi
+          echo ""
+
+          echo "| Scan | Status |"
+          echo "|------|--------|"
+          for i in "${!labels[@]}"; do
+            echo "| ${labels[$i]} | $(status_icon "${outcomes[$i]}") |"
+          done
+
+          if [ "$failure_count" -gt 0 ]; then
+            echo ""
+            echo "---"
+            echo ""
+            echo "_Refer to the [action logs]($LOGS_URL) for full scan output._"
+
+            if [ "$npm_outcome" = "failure" ]; then
+              echo ""
+              echo "<details>"
+              echo "<summary><strong>npm audit</strong></summary>"
+              echo ""
+              found_any=false
+              for json_file in ./scan-results/npm-raw-*.json; do
+                [ -f "$json_file" ] || continue
+                scan_dir=$(jq -r '._scannedDir // "."' "$json_file" 2>/dev/null || echo ".")
+                dir_slug=$(echo "$scan_dir" | sed 's|^\./||;s|/|__|g')
+                pkgs_json=$(cat "./scan-results/npm-packages-${dir_slug:-root}.json" 2>/dev/null || echo '[]')
+                rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                  ($pkgs | map({(.name): .version}) | add // {}) as $versions |
+                  (.vulnerabilities // {}) | to_entries[] |
+                  select((.value.severity == "high" or .value.severity == "critical") and (.value.fixAvailable != false)) |
+                  [
+                    .key,
+                    (.value.severity | ascii_upcase),
+                    ($versions[.key] // "unknown"),
+                    (if (.value.fixAvailable | type) == "object" then .value.fixAvailable.version
+                     else
+                       ([(.value.via // [] | .[] | select(type == "object") | .range // ""), (.value.range // "")] |
+                        join(" ") | [scan("<[0-9][^\\s]*")] | map(ltrimstr("<")) | first) // "-"
+                     end),
+                    (if (.value.fixAvailable | type) == "object" and .value.fixAvailable.isSemVerMajor then "force" else "auto" end),
+                    (([.value.via // [] | .[] | select(type == "object") | .url // ""] | map(select(. != "")) | first) // "-")
+                  ] |
+                  @tsv
+                ' "$json_file" 2>/dev/null || echo "")
+                [ -z "$rows" ] && continue
+                found_any=true
+                echo "**\`$scan_dir\`**"
+                echo ""
+                echo "| Package | Severity | Installed | Fix ≥ | Advisory | Command |"
+                echo "|---------|----------|-----------|-------|----------|---------|"
+                while IFS=$'\t' read -r pkg severity installed fix_ver fix_type advisory_url; do
+                  if [ "$fix_type" = "force" ]; then
+                    cmd="\`npm audit fix --force --prefix $scan_dir\` _(may introduce breaking changes)_"
+                  else
+                    cmd="\`npm audit fix --prefix $scan_dir\`"
+                  fi
+                  if [ "$advisory_url" != "-" ] && [ -n "$advisory_url" ]; then
+                    advisory_id=$(basename "$advisory_url")
+                    advisory_col="[$advisory_id]($advisory_url)"
+                  else
+                    advisory_col="-"
+                  fi
+                  echo "| \`$pkg\` | $severity | \`$installed\` | \`$fix_ver\` | $advisory_col | $cmd |"
+                done <<< "$rows"
+                echo ""
+              done
+              if [ "$found_any" = false ]; then
+                echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL)."
+                echo ""
+              fi
+              echo "</details>"
+              echo ""
+            fi
+
+            if [ "$composer_outcome" = "failure" ]; then
+              echo ""
+              echo "<details>"
+              echo "<summary><strong>Composer audit</strong></summary>"
+              echo ""
+              if [ -f "./scan-results/composer-audit.json" ]; then
+                pkgs_json=$(cat "./scan-results/composer-packages.json" 2>/dev/null || echo '[]')
+                rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                  ($pkgs | map({(.name): .version}) | add // {}) as $versions |
+                  .advisories // {} | to_entries[] |
+                  .key as $pkg |
+                  ($versions[$pkg] // "unknown") as $current_ver |
+                  .value[] |
+                  select(.ignored != true and (.severity == "high" or .severity == "critical")) |
+                  [$pkg, (.severity | ascii_upcase), $current_ver, (.affectedVersions // ""), (.advisoryId // "-"), (.link // "-"), (.cve // "-")] |
+                  @tsv
+                ' ./scan-results/composer-audit.json 2>/dev/null || echo "")
+                if [ -n "$rows" ]; then
+                  echo "| Package | Severity | Installed | Fix ≥ | Advisory | Command |"
+                  echo "|---------|----------|-----------|-------|----------|---------|"
+                  while IFS=$'\t' read -r pkg severity current_ver affected advisory link cve; do
+                    clean_ver=$(echo "$current_ver" | sed 's/^v//')
+                    major=$(echo "$clean_ver" | cut -d. -f1)
+                    # Prefer the fix version from the same major version branch as installed
+                    fix_ver=$(echo "$affected" | grep -oE "<${major}\.[0-9]+(\.[0-9]+)?" | tr -d '<' | sort -V | head -1 2>/dev/null || true)
+                    if [ -z "$fix_ver" ]; then
+                      incl=$(echo "$affected" | grep -oE "<=${major}\.[0-9]+\.[0-9]+" | sed 's/^<=//' | sort -V | head -1 2>/dev/null || true)
+                      if [ -n "$incl" ]; then
+                        p=$(echo "$incl" | cut -d. -f3)
+                        fix_ver="$(echo "$incl" | cut -d. -f1-2).$((p + 1))"
+                      fi
+                    fi
+                    # Fall back to the highest fix version across all branches
+                    if [ -z "$fix_ver" ]; then
+                      fix_ver=$(echo "$affected" | grep -oE '<[0-9]+\.[0-9]+(\.[0-9]+)?' | tr -d '<' | sort -V | tail -1 2>/dev/null || true)
+                    fi
+                    [ -z "$fix_ver" ] && fix_ver="$affected"
+                    if [ "$link" != "-" ] && [ -n "$link" ]; then
+                      advisory_col="[$advisory]($link)"
+                    else
+                      advisory_col="$advisory"
+                    fi
+                    if [ "$cve" != "-" ] && [ -n "$cve" ]; then
+                      advisory_col="$advisory_col / [$cve](https://nvd.nist.gov/vuln/detail/$cve)"
+                    fi
+                    echo "| \`$pkg\` | $severity | \`$current_ver\` | \`$fix_ver\` | $advisory_col | \`composer update $pkg\` |"
+                  done <<< "$rows"
+                  echo ""
+                else
+                  if grep -q "affected by security advisories" ./scan-results/composer-audit.txt 2>/dev/null; then
+                    echo "Composer install was blocked — one or more required packages are affected by security advisories. Refer to the [action logs]($LOGS_URL) for the full list of advisory IDs."
+                  else
+                    echo "No HIGH or CRITICAL advisories found — refer to the [action logs]($LOGS_URL) for lower-severity findings."
+                  fi
+                  echo ""
+                fi
+              else
+                if grep -q "affected by security advisories" ./scan-results/composer-audit.txt 2>/dev/null; then
+                  echo "Composer install was blocked — one or more required packages are affected by security advisories. Refer to the [action logs]($LOGS_URL) for the full list of advisory IDs."
+                else
+                  echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL)."
+                fi
+                echo ""
+              fi
+              echo "</details>"
+              echo ""
+            fi
+
+            if [ "$semgrep_outcome" = "failure" ]; then
+              echo ""
+              echo "<details>"
+              echo "<summary><strong>Semgrep SAST</strong></summary>"
+              echo ""
+              if [ -f "./scan-results/semgrep.json" ]; then
+                rows=$(jq -r '
+                  .results // [] |
+                  map(select(.extra.severity == "ERROR" or .extra.severity == "WARNING")) |
+                  sort_by(.extra.severity, .path, .start.line) |
+                  .[] |
+                  [
+                    ("[" + (.check_id | split(".") | last) + "](https://semgrep.dev/r/" + .check_id + ")"),
+                    .path,
+                    (.start.line | tostring),
+                    .extra.severity,
+                    (.extra.message | gsub("[\n\r\t]"; " ") | .[0:300])
+                  ] |
+                  @tsv
+                ' ./scan-results/semgrep.json 2>/dev/null || echo "")
+                if [ -n "$rows" ]; then
+                  echo "| Rule | Location | Severity | Message |"
+                  echo "|------|----------|----------|---------|"
+                  while IFS=$'\t' read -r rule file line severity message; do
+                    echo "| $rule | \`$file:$line\` | $severity | $message |"
+                  done <<< "$rows"
+                  echo ""
+                else
+                  echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL) for the flagged patterns and file locations."
+                  echo ""
+                fi
+              else
+                echo "Could not parse detailed results — refer to the [action logs]($LOGS_URL) for the flagged patterns and file locations."
+                echo ""
+              fi
+              echo "</details>"
+              echo ""
+            fi
+
+            if [[ "${{ inputs.INIT }}" == "true" ]]; then
+              trivy_names=("init" "php" "supervisord")
+              trivy_labels=("Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
+              trivy_outcomes=("$init_outcome" "$php_outcome" "$supervisord_outcome")
+            else
+              trivy_names=("php" "supervisord")
+              trivy_labels=("Trivy (php image)" "Trivy (supervisord image)")
+              trivy_outcomes=("$php_outcome" "$supervisord_outcome")
+            fi
+            for j in "${!trivy_names[@]}"; do
+              name="${trivy_names[$j]}"
+              label="${trivy_labels[$j]}"
+              t_outcome="${trivy_outcomes[$j]}"
+              if [ "$t_outcome" = "failure" ] || [ "$t_outcome" = "skipped" ]; then
+                echo ""
+                echo "<details>"
+                echo "<summary><strong>$label</strong></summary>"
+                echo ""
+                if [ "$t_outcome" = "skipped" ]; then
+                  echo "The Trivy scan was skipped, likely because the Docker image build failed. Refer to the [action logs]($LOGS_URL) for details."
+                  echo ""
+                else
+                  echo "These may contain OS-level package vulnerabilities that require updates (e.g. \`apt update <package>\`) to be added to the Dockerfile."
+                  echo ""
+                  trivy_text=$(cat "./trivy-results-${name}/trivy-${name}.txt" 2>/dev/null || echo "")
+                  if [ -n "$trivy_text" ]; then
+                    trivy_lines=$(echo "$trivy_text" | wc -l)
+                    echo '```'
+                    echo "$trivy_text" | head -150 || true
+                    if [ "$trivy_lines" -gt 150 ]; then
+                      echo "... $((trivy_lines - 150)) more lines — refer to the [action logs]($LOGS_URL) for the full output."
+                    fi
+                    echo '```'
+                    echo ""
+                  fi
+                fi
+                echo "</details>"
+                echo ""
+              fi
+            done
+          fi
+
+        } > /tmp/pr-comment.md
+
+        # GitHub's comment body limit is 65536 chars — hard-truncate if still over
+        if [ "$(wc -c < /tmp/pr-comment.md)" -gt 65000 ]; then
+          { head -c 64800 /tmp/pr-comment.md; printf '\n\n---\n_Output truncated — [refer to action logs](%s) for full results._\n' "$LOGS_URL"; } > /tmp/pr-comment-truncated.md
+          mv /tmp/pr-comment-truncated.md /tmp/pr-comment.md
+        fi
+
+        PR_NUMBER=${{ github.event.pull_request.number }}
+        REPO=${{ github.repository }}
+        MARKER="<!-- vulnerability-scan-results-${{ inputs.REF }} -->"
+
+        comment_id=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+          --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$MARKER\")))] | last | .id // empty")
+
+        if [ -n "$comment_id" ]; then
+          gh api "repos/$REPO/issues/comments/$comment_id" --method PATCH --field body=@/tmp/pr-comment.md
+        else
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/pr-comment.md
+        fi

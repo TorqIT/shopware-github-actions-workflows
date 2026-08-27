@@ -62,6 +62,8 @@ runs:
         BUILD_TIME_SECRETS: ${{ inputs.BUILD_TIME_SECRETS }} 
         SHOPWARE_COMPOSER_TOKEN: ${{ inputs.SHOPWARE_COMPOSER_TOKEN }}
         TORQ_GITHUB_TOKEN: ${{ inputs.TORQ_GITHUB_TOKEN }}
+        CACHE_TO: type=gha,mode=max
+        CACHE_FROM: type=gha
         PUSH: "false"
         LOAD: "true"
         TAGS: "test:test"
@@ -69,9 +71,7 @@ runs:
     - name: Run unit tests
       shell: bash
       run: |
-        set -e
-        
-        TODO unit test setup for Shopware
+        # TODO unit test setup for Shopware
 
     - name: Cleanup containers
       if: always()

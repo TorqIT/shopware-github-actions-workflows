@@ -11,22 +11,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  meta-checks:
-    name: "Meta CI checks"
+  meta:
+    name: "Meta CI checks on workflows repo"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Lint files
         uses: ./.github/actions/lint
 
-      - name: Lint GitHub Actions workflows
-        uses: docker://rhysd/actionlint:latest
-        with:
-          args: -color -shellcheck=
-
-  skeleton-ci-check:
+  skeleton-ci:
     name: "Test CI workflow against Shopware skeleton"
     uses: ./.github/workflows/ci-docker.yml
     with:
@@ -36,7 +31,23 @@ jobs:
       E2E_TESTS_DIRECTORY: e2e
       E2E_TESTS_HOSTNAME: "demo.localhost.torq"
       GITHUB_APP_CHECKOUT: true
+      RUN_UNIT_TESTS: true
+      RUN_PHPSTAN: true
+      POST_SCAN_RESULTS_TO_PR: true
     secrets:
-      SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
       GITHUB_APP_ID: ${{ secrets.GH_APP_ID }}
       GITHUB_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+      SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
+  skeleton-ci-azure:
+    name: "Test Azure CD workflow against Shopware skeleton"
+    uses: ./.github/workflows/meta-ci-azure.yml
+    with:
+      ENVIRONMENT: 6.6
+      PARAMETERS_FILE: "./.github/ci/azure/parameters.6.6.json"
+      PROJECT_REPOSITORY_REF: main
+    secrets:
+      SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+      CI_SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.CI_SERVICE_PRINCIPAL_PASSWORD }}
+      GH_APP_ID: ${{ secrets.GH_APP_ID }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}

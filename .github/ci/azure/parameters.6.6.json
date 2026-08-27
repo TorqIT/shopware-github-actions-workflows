@@ -1,0 +1,189 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "subscriptionId": {
+      "value": "27cab9a2-4a98-4eab-86ca-296494dbbcf2"
+    },
+    "tenantId": {
+      "value": "6f8ae12a-9b31-4877-b46f-c0590040b1fb"
+    },
+    "resourceGroupName": {
+      "value": "Shopware-66-GH-CI"
+    },
+    "provisionServicePrincipal": {
+      "value": false
+    },
+    "location": {
+      "value": "canadacentral"
+    },
+    "keyVaultName": {
+      "value": "shopware-66-gh-kv-ci"
+    },
+    "keyVaultEnablePurgeProtection": {
+      "value": false
+    },
+    "keyVaultGenerateRandomSecrets": {
+      "value": true
+    },
+    "containerRegistryName": {
+      "value": "shopware66ghcrci"
+    },
+    "containerRegistrySku": {
+      "value": "Basic"
+    },
+    "virtualNetworkName": {
+      "value": "shopware-66-gh-vnet-ci"
+    },
+    "storageAccountName": {
+      "value": "shopware66ghsaci"
+    },
+    "storageAccountFileShares": {
+      "value": [
+        {
+          "name": "uploads"
+        }
+      ]
+    },
+    "storageAccountLongTermBackups": {
+      "value": false
+    },
+    "storageAccountProvisionFrontDoorCdn": {
+      "value": true
+    },
+    "storageAccountFrontDoorCdnProfileName": {
+      "value": "shopware-66-gh-cdn-ci"
+    },
+    "storageAccountFrontDoorCdnEndpointName": {
+      "value": "shopware-66-gh-cdn-endpoint-ci"
+    },
+    "databaseServerName": {
+      "value": "shopware-66-gh-db-ci"
+    },
+    "containerAppsEnvironmentName": {
+      "value": "shopware-66-gh-cae-ci"
+    },
+    "containerAppsEnvironmentUseWorkloadProfiles": {
+      "value": true
+    },
+    "initContainerAppJobName": {
+      "value": "shopware-66-gh-init-ci"
+    },
+    "initContainerAppJobCpuCores": {
+      "value": "1.5"
+    },
+    "initContainerAppJobMemory": {
+      "value": "3Gi"
+    },
+    "phpContainerAppExternal": {
+      "value": true
+    },
+    "phpContainerAppName": {
+      "value": "shopware-66-gh-php-ci"
+    },
+    "phpContainerAppMinReplicas": {
+      "value": 0
+    },
+    "phpContainerAppProvisionHttpScaleRule": {
+      "value": true
+    },
+    "phpContainerAppHttpScaleRuleConcurrentRequestsThreshold": {
+      "value": 30
+    },
+    "phpContainerAppProvisionStartupProbe": {
+      "value": true
+    },
+    "phpContainerAppStartupProbePath": {
+      "value": "/"
+    },
+    "phpContainerAppStartupProbeInitialDelaySeconds": {
+      "value": 60
+    },
+    "phpContainerAppStartupProbePeriodSeconds": {
+      "value": 10
+    },
+    "phpContainerAppStartupProbeFailureThreshold": {
+      "value": 30
+    },
+    "phpContainerAppIpSecurityRestrictions": {
+      "value": [
+      ]
+    },
+    "supervisordContainerAppName": {
+      "value": "shopware-66-gh-supervisord-ci"
+    },
+    "supervisordContainerAppCpuCores": {
+      "value": "0.5"
+    },
+    "supervisordContainerAppMemory": {
+      "value": "1Gi"
+    },
+    "provisionOpensearch": {
+      "value": true
+    },
+    "opensearchContainerAppName": {
+      "value": "shopware-66-gh-opnsrch-ci"
+    },
+    "appEnv": {
+      "value": "test_env"
+    },
+    "appUrl": {
+      "value": "my-app.domain.com"
+    },
+    "appInstallCurrency": {
+      "value": "CAD"
+    },
+    "appSalesChannelName": {
+      "value": "My Sales Channel"
+    },
+    "appSalesChannelCurrencyId": {
+      "value": "b7d2554b0ce847cd82f3ac9bd1c0dfca"
+    },
+    "appSalesChannelId": {
+      "value": "018f62358a357230852fd8838c604b60"
+    },
+    "additionalEnvVars": {
+      "value": []
+    },
+    "additionalSecrets": {
+      "value": {
+        "array": []
+      }
+    },
+    "fileStorageAccountName": {
+      "value": "shopware66ghfilesci"
+    },
+    "fileStorageAccountFileShares": {
+      "value": [
+        {
+          "name": "assets",
+          "maxSizeGB": 120
+        }
+      ]
+    },
+    "additionalVolumesAndMounts": {
+      "value": [
+        {
+          "storageAccountName": "shopware66ghfilesci",
+          "fileShareName": "assets",
+          "mountName": "assets",
+          "mountAccessMode": "ReadWrite",
+          "volumeName": "assets",
+          "mountPath": "/var/www/html/public/var/assets"
+        },
+        {
+          "storageAccountName": "shopware66ghsaci",
+          "fileShareName": "uploads",
+          "mountName": "uploads",
+          "mountAccessMode": "ReadWrite",
+          "volumeName": "uploads",
+          "mountPath": "/var/www/html/uploads",
+          "storageType": "AzureFile"
+        }
+      ]
+    },
+    "provisionMetricAlerts": {
+      "value": true
+    }
+  }
+}
