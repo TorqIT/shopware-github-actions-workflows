@@ -15,10 +15,10 @@ concurrency:
 jobs:
   tear-down-azure-resources:
     name: Tear down CI Azure resources
-    uses: TorqIT/shopware-azure-provisioning/.github/workflows/tear-down-azure-resources.yml@main
+    uses: TorqIT/shopware-azure-provisioning/.github/workflows/tear-down-azure-resources.yml@v2
     with:
       SERVICE_PRINCIPAL_ID: ${{ vars.CI_SERVICE_PRINCIPAL_ID }}
-      PARAMETERS_FILE: "./.github/ci/azure/parameters.json"
+      PARAMETERS_FILE: "./.github/ci/azure/parameters.6.6.json"
       FAIL_ON_ERROR: ${{ github.event_name == 'pull_request' }}
     secrets:
       SERVICE_PRINCIPAL_PASSWORD: ${{ secrets.CI_SERVICE_PRINCIPAL_PASSWORD }}
