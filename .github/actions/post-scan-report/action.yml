@@ -101,7 +101,7 @@ runs:
             echo "> **$failure_count scan(s) failed** — action required. See below for what to fix."
           else
             echo "> [!TIP]"
-            echo "> All scans passed — no action required."
+            echo "> All scans passed — no immediate action required."
           fi
           echo ""
 
