@@ -317,8 +317,8 @@ jobs:
           fi
           {
             cat /tmp/composer-install.txt 2>/dev/null || true
-            composer --working-dir=${{ inputs.PIMCORE_ROOT }} audit --abandoned=ignore --locked --no-dev --format=json > /tmp/composer-audit.json 2>/dev/null || true
-            composer --working-dir=${{ inputs.PIMCORE_ROOT }} audit --abandoned=ignore --locked --no-dev || true
+            composer --working-dir=${{ inputs.PIMCORE_ROOT }} audit --abandoned=report --locked --no-dev --format=json > /tmp/composer-audit.json 2>/dev/null || true
+            composer --working-dir=${{ inputs.PIMCORE_ROOT }} audit --abandoned=report --locked --no-dev || true
             jq '[.packages[] | {name, version}]' "${{ inputs.PIMCORE_ROOT }}/composer.lock" > /tmp/composer-packages.json 2>/dev/null || echo '[]' > /tmp/composer-packages.json
           } 2>&1 | tee /tmp/composer-audit.txt || true
           [ "$install_exit" -eq 0 ] || exit 1

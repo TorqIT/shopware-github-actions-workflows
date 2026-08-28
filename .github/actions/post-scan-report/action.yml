@@ -111,6 +111,29 @@ runs:
             echo "| ${labels[$i]} | $(status_icon "${outcomes[$i]}") |"
           done
 
+          # Abandoned Composer packages don't fail the build (composer-scan runs
+          # `--abandoned=report`), so surface them here unconditionally rather
+          # than nesting under the failure_count block below.
+          if [ -f "./scan-results/composer-audit.json" ]; then
+            abandoned_rows=$(jq -r '.abandoned // {} | to_entries[] | [.key, (.value // "-")] | @tsv' ./scan-results/composer-audit.json 2>/dev/null || echo "")
+            if [ -n "$abandoned_rows" ]; then
+              abandoned_count=$(echo "$abandoned_rows" | wc -l)
+              echo ""
+              echo "> [!WARNING]"
+              echo "> **$abandoned_count Composer package(s) are abandoned** — no longer maintained upstream. This does not fail the build, but should be migrated when convenient."
+              echo ""
+              echo "| Package | Suggested Replacement |"
+              echo "|---------|------------------------|"
+              while IFS=$'\t' read -r pkg replacement; do
+                if [ "$replacement" = "-" ] || [ -z "$replacement" ]; then
+                  echo "| \`$pkg\` | _none suggested_ |"
+                else
+                  echo "| \`$pkg\` | \`$replacement\` |"
+                fi
+              done <<< "$abandoned_rows"
+            fi
+          fi
+
           if [ "$failure_count" -gt 0 ]; then
             echo ""
             echo "---"
