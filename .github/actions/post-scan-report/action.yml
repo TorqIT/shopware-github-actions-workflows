@@ -120,7 +120,7 @@ runs:
               abandoned_count=$(echo "$abandoned_rows" | wc -l)
               echo ""
               echo "> [!WARNING]"
-              echo "> **$abandoned_count Composer package(s) are abandoned** — no longer maintained upstream. This does not fail the build, but should be migrated when convenient."
+              echo "> **$abandoned_count Composer package(s) are abandoned**. These should be migrated when convenient."
               echo ""
               echo "| Package | Suggested Replacement |"
               echo "|---------|------------------------|"
