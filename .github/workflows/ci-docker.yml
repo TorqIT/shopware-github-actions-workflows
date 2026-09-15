@@ -246,6 +246,12 @@ jobs:
       - name: Install tools for workflows/actions
         uses: ./reusable-workflow/.github/actions/setup-tools
 
+      - name: Replace local Composer dependencies with their remote counterparts
+        uses: ./reusable-workflow/.github/actions/replace-local-composer-dependencies
+        with:
+          SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
+          SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
+
       - name: Compute ref slug
         id: ref-slug
         env:

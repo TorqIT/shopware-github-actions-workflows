@@ -100,7 +100,7 @@ runs:
       with:
         repository: ${{ inputs.PROJECT_REPOSITORY }}
         ref: ${{ inputs.PROJECT_REPOSITORY_REF }}
-        submodules: recursive
+        submodules: ${{ inputs.SUBMODULES }}
         token: ${{ steps.full_token.outputs.token || inputs.GITHUB_TOKEN }}
 
     - name: Move reusable-workflow files back to original location
