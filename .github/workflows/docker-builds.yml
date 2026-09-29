@@ -28,6 +28,7 @@ on:
       RUNNER:
         required: false
         type: string
+        default: ubuntu-24.04
         description: Optional self-hosted runner for this workflow (see https://github.com/TorqIT/shopware-github-actions-workflows#self-hosted-runners)
       SUBMODULES:
         required: false
@@ -86,7 +87,7 @@ on:
 jobs:
   build-docker-images:
     name: Build Docker images
-    runs-on: ${{ inputs.RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ inputs.RUNNER }}
 
     steps:
       - name: Checkout repository
