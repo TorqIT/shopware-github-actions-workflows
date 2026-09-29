@@ -11,7 +11,6 @@
 #     uses: TorqIT/shopware-github-actions-workflows/.github/workflows/ci-docker.yml@v8
 #     permissions:
 #       contents: read
-#       actions: read
 #       pull-requests: write  # required for post-scan-report to comment on PRs
 #     secrets:
 #       SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
@@ -176,19 +175,11 @@ jobs:
     runs-on: ${{ inputs.RUNNER }}
 
     steps:
-      - name: Get workflow version
-        id: workflow-version
-        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
-        with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: ci-docker.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
-          ref: ${{ steps.workflow-version.outputs.sha }}
+          ref: ${{ job.workflow_sha }}
           path: reusable-workflow
           fetch-depth: 1
 
@@ -217,19 +208,11 @@ jobs:
       composer-outcome: ${{ steps.composer-scan.outcome }}
       semgrep-outcome: ${{ steps.semgrep-scan.outcome }}
     steps:
-      - name: Get workflow version
-        id: workflow-version
-        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
-        with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: ci-docker.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
-          ref: ${{ steps.workflow-version.outputs.sha }}
+          ref: ${{ job.workflow_sha }}
           path: reusable-workflow
           fetch-depth: 1
 
@@ -381,19 +364,11 @@ jobs:
             dockerfile: ${{ inputs.SUPERVISORD_DOCKERFILE }}
             target: ${{ inputs.SUPERVISORD_TARGET }}
     steps:
-      - name: Get workflow version
-        id: workflow-version
-        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
-        with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: ci-docker.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
-          ref: ${{ steps.workflow-version.outputs.sha }}
+          ref: ${{ job.workflow_sha }}
           path: reusable-workflow
           fetch-depth: 1
 
@@ -501,19 +476,11 @@ jobs:
     needs: [vulnerability-scan, build]
     if: (success() || failure()) && github.event_name == 'pull_request' && inputs.POST_SCAN_RESULTS_TO_PR
     steps:
-      - name: Get workflow version
-        id: workflow-version
-        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
-        with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: ci-docker.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
-          ref: ${{ steps.workflow-version.outputs.sha }}
+          ref: ${{ job.workflow_sha }}
           path: reusable-workflow
           fetch-depth: 1
 
@@ -532,19 +499,11 @@ jobs:
     runs-on: ${{ inputs.RUNNER }}
     if: ${{ inputs.RUN_UNIT_TESTS }}
     steps:
-      - name: Get workflow version
-        id: workflow-version
-        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
-        with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: ci-docker.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
-          ref: ${{ steps.workflow-version.outputs.sha }}
+          ref: ${{ job.workflow_sha }}
           path: reusable-workflow
           fetch-depth: 1
 
@@ -581,19 +540,11 @@ jobs:
     runs-on: ${{ inputs.RUNNER }}
     if: ${{ inputs.RUN_PHPSTAN }}
     steps:
-      - name: Get workflow version
-        id: workflow-version
-        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
-        with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: ci-docker.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
-          ref: ${{ steps.workflow-version.outputs.sha }}
+          ref: ${{ job.workflow_sha }}
           path: reusable-workflow
           fetch-depth: 1
 
@@ -649,19 +600,11 @@ jobs:
     if: ${{ inputs.E2E_TESTS_DIRECTORY != '' }}
     runs-on: ${{ inputs.RUNNER }}
     steps:
-      - name: Get workflow version
-        id: workflow-version
-        uses: canonical/get-workflow-version-action@ba22d0abdc1eda539aa3ac81af1cfee160b10714 # v1.0.4
-        with:
-          repository-name: TorqIT/shopware-github-actions-workflows
-          file-name: ci-docker.yml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout workflow repository to use composite actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: TorqIT/shopware-github-actions-workflows
-          ref: ${{ steps.workflow-version.outputs.sha }}
+          ref: ${{ job.workflow_sha }}
           path: reusable-workflow
           fetch-depth: 1
 

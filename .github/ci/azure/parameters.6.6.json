@@ -118,11 +118,14 @@
     "supervisordContainerAppMemory": {
       "value": "1Gi"
     },
-    "provisionOpensearch": {
+    "provisionServicesVM": {
       "value": true
     },
-    "opensearchContainerAppName": {
-      "value": "shopware-66-gh-opnsrch-ci"
+    "servicesVmName": {
+      "value": "shopware-66-gh-services-ci"
+    },
+    "opensearchUrl": {
+      "value": "http://shopware-66-gh-services-ci.internal.cloudapp.net:9200"
     },
     "appEnv": {
       "value": "test_env"
