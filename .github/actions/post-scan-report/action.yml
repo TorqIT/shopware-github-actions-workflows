@@ -64,10 +64,19 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        # Inputs go through env rather than inline ${{ }} so the script is not
+        # evaluated as one expression (GitHub caps those at 21000 chars) and so
+        # the branch name in REF cannot inject shell code.
+        NPM_OUTCOME: ${{ inputs.NPM_OUTCOME }}
+        COMPOSER_OUTCOME: ${{ inputs.COMPOSER_OUTCOME }}
+        SEMGREP_OUTCOME: ${{ inputs.SEMGREP_OUTCOME }}
+        INIT: ${{ inputs.INIT }}
+        REF: ${{ inputs.REF }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
-        npm_outcome="${{ inputs.NPM_OUTCOME }}"
-        composer_outcome="${{ inputs.COMPOSER_OUTCOME }}"
-        semgrep_outcome="${{ inputs.SEMGREP_OUTCOME }}"
+        npm_outcome="$NPM_OUTCOME"
+        composer_outcome="$COMPOSER_OUTCOME"
+        semgrep_outcome="$SEMGREP_OUTCOME"
         php_outcome=$(cat ./trivy-results-php/trivy-php-status.txt 2>/dev/null || echo "unknown")
         supervisord_outcome=$(cat ./trivy-results-supervisord/trivy-supervisord-status.txt 2>/dev/null || echo "unknown")
 
@@ -80,7 +89,7 @@ runs:
           esac
         }
 
-        if [[ "${{ inputs.INIT }}" == "true" ]]; then
+        if [[ "$INIT" == "true" ]]; then
           init_outcome=$(cat ./trivy-results-init/trivy-init-status.txt 2>/dev/null || echo "unknown")
           labels=("npm audit" "Composer audit" "Semgrep SAST" "Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
           outcomes=("$npm_outcome" "$composer_outcome" "$semgrep_outcome" "$init_outcome" "$php_outcome" "$supervisord_outcome")
@@ -96,11 +105,11 @@ runs:
           fi
         done
 
-        LOGS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        LOGS_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
         {
-          echo "<!-- vulnerability-scan-results-${{ inputs.REF }} -->"
-          echo "## Security Scan Results for ${{ inputs.REF }}"
+          echo "<!-- vulnerability-scan-results-$REF -->"
+          echo "## Security Scan Results for $REF"
           echo ""
 
           if [ "$failure_count" -gt 0 ]; then
@@ -209,26 +218,76 @@ runs:
                       ($ranges | map(upper_bound(.)) | map(select(. != null))) as $allfixes |
                       if ($allfixes | length) > 0 then ($allfixes | sort_by(norm(.)) | last) else null end
                     end;
-                  ($pkgs | map({(.name): .version}) | add // {}) as $versions |
-                  (.vulnerabilities // {}) | to_entries[] |
+                  # A package flagged only because a dependency is vulnerable has
+                  # package names (not advisory objects) in .via, so follow that
+                  # chain down to the advisories that actually caused it.
+                  def root_advisories($vulns; $name; $seen):
+                    if ($seen | any(. == $name)) then []
+                    else
+                      ($vulns[$name].via // []) |
+                      map(if type == "object" then [.url // empty]
+                          else root_advisories($vulns; .; $seen + [$name]) end) |
+                      add // []
+                    end;
+                  # npm can report fixAvailable: true for a package flagged only via a
+                  # dependency even when that dependency can only be fixed by a
+                  # (possibly major) upgrade elsewhere, so take the concrete fix from
+                  # further down the chain when there is one.
+                  def chain_fixes($vulns; $name; $seen):
+                    if ($seen | any(. == $name)) then []
+                    else
+                      ($vulns[$name].via // []) | map(select(type == "string")) |
+                      map(. as $dep | $vulns[$dep].fixAvailable as $f |
+                          if ($f | type) == "object" then [$f]
+                          else chain_fixes($vulns; $dep; $seen + [$name]) end) |
+                      add // []
+                    end;
+                  # Packages are keyed by lockfile path so nested copies (e.g.
+                  # node_modules/a/node_modules/semver) resolve to the version npm
+                  # actually flagged, not the hoisted top-level one. Entries without
+                  # a path (older scan artifacts) fall back to a lookup by name.
+                  ($pkgs | map(select(.path) | {(.path): .version}) | add // {}) as $by_path |
+                  ($pkgs | map(select((.path // ("node_modules/" + .name)) == ("node_modules/" + .name)) | {(.name): .version}) | add // {}) as $versions |
+                  (.vulnerabilities // {}) as $vulns |
+                  # Every installed version of a vulnerable package, lowest first.
+                  def installed($name):
+                    ([$vulns[$name].nodes // [] | .[] | $by_path[.] // empty] | unique | sort_by(norm(.))) as $found |
+                    if ($found | length) > 0 then $found else [$versions[$name] // "unknown"] end;
+                  $vulns | to_entries[] |
                   select((.value.severity == "high" or .value.severity == "critical") and (.value.fixAvailable != false)) |
-                  ($versions[.key] // "unknown") as $current_ver |
-                  (.value.range // ([.value.via // [] | .[] | select(type == "object") | .range // ""] | map(select(. != "")) | join(" || "))) as $affected |
+                  installed(.key) as $installed |
+                  # The lowest installed copy is the one furthest from a fix.
+                  $installed[0] as $current_ver |
+                  # fixAvailable.version is what `npm audit fix` would install
+                  # (usually the latest release), not the lowest patched version,
+                  # so derive the minimum fix from each direct advisory range. A fix
+                  # must clear every advisory, hence the highest of the per-advisory fixes.
+                  ([.value.via // [] | .[] | select(type == "object") | fix_for($current_ver; .range // "")] |
+                    map(select(. != null)) | sort_by(norm(.)) | last) as $patched |
+                  (if (.value.fixAvailable | type) == "object" then .value.fixAvailable
+                   else (chain_fixes($vulns; .key; []) | sort_by(.isSemVerMajor | not) | first) // .value.fixAvailable
+                   end) as $fa |
                   [
                     .key,
                     (.value.severity | ascii_upcase),
-                    $current_ver,
-                    (if (.value.fixAvailable | type) == "object" then
-                       (.value.fixAvailable.name) as $fixName |
-                       (.value.fixAvailable.version) as $fixVer |
-                       if $fixName != .key then ("via " + $fixName + "@" + $fixVer)
-                       elif vcmp($fixVer; $current_ver) <= 0 then ($fixVer + " (downgrade)")
-                       else $fixVer
-                       end
-                     else (fix_for($current_ver; $affected) // $affected // "-")
+                    ($installed | join(", ")),
+                    (if ($fa | type) == "object" and $fa.name != .key then ("via " + $fa.name + "@" + $fa.version)
+                     elif $patched != null then $patched
+                     elif ($fa | type) == "object" then
+                       (if vcmp($fa.version; $current_ver) <= 0 then ($fa.version + " (downgrade)") else $fa.version end)
+                     else
+                       # Fixable within existing ranges: name the patched version of
+                       # each vulnerable dependency (from its own advisories) when known.
+                       ([.value.via // [] | .[] | select(type == "string")] | unique | map(
+                          . as $dep | (installed($dep)[0]) as $dep_ver |
+                          ([$vulns[$dep].via // [] | .[] | select(type == "object") | fix_for($dep_ver; .range // "")] |
+                            map(select(. != null)) | sort_by(norm(.)) | last) as $dep_fix |
+                          if $dep_fix != null then ($dep + "@" + $dep_fix) else $dep end
+                        )) as $deps |
+                       (if ($deps | length) > 0 then ("via " + ($deps | join(", "))) else "-" end)
                      end),
-                    (if (.value.fixAvailable | type) == "object" and .value.fixAvailable.isSemVerMajor then "force" else "auto" end),
-                    (([.value.via // [] | .[] | select(type == "object") | .url // ""] | map(select(. != "")) | first) // "-")
+                    (if ($fa | type) == "object" and $fa.isSemVerMajor then "force" else "auto" end),
+                    (root_advisories($vulns; .key; []) | unique | if length > 0 then join(" ") else "-" end)
                   ] |
                   @tsv
                 ' "$json_file" 2>/dev/null || echo "")
@@ -238,17 +297,25 @@ runs:
                 echo ""
                 echo "| Package | Severity | Installed | Fix ≥ | Advisory | Command |"
                 echo "|---------|----------|-----------|-------|----------|---------|"
-                while IFS=$'\t' read -r pkg severity installed fix_ver fix_type advisory_url; do
+                while IFS=$'\t' read -r pkg severity installed fix_ver fix_type advisory_urls; do
                   if [ "$fix_type" = "force" ]; then
                     cmd="\`npm audit fix --force --prefix $scan_dir\` _(may introduce breaking changes)_"
                   else
                     cmd="\`npm audit fix --prefix $scan_dir\`"
                   fi
-                  if [ "$advisory_url" != "-" ] && [ -n "$advisory_url" ]; then
-                    advisory_id=$(basename "$advisory_url")
-                    advisory_col="[$advisory_id]($advisory_url)"
-                  else
-                    advisory_col="-"
+                  # Cap the links so a package with dozens of advisories doesn't
+                  # blow up the row (and the comment size limit).
+                  advisory_col="-"
+                  if [ "$advisory_urls" != "-" ] && [ -n "$advisory_urls" ]; then
+                    advisory_col=""
+                    advisory_total=$(wc -w <<< "$advisory_urls")
+                    for advisory_url in $(tr ' ' '\n' <<< "$advisory_urls" | head -n 3); do
+                      advisory_id=$(basename "$advisory_url")
+                      advisory_col="${advisory_col:+$advisory_col, }[$advisory_id]($advisory_url)"
+                    done
+                    if [ "$advisory_total" -gt 3 ]; then
+                      advisory_col="$advisory_col _+$((advisory_total - 3)) more_"
+                    fi
                   fi
                   echo "| \`$pkg\` | $severity | \`$installed\` | \`$fix_ver\` | $advisory_col | $cmd |"
                 done <<< "$rows"
@@ -401,7 +468,7 @@ runs:
               echo ""
             fi
 
-            if [[ "${{ inputs.INIT }}" == "true" ]]; then
+            if [[ "$INIT" == "true" ]]; then
               trivy_names=("init" "php" "supervisord")
               trivy_labels=("Trivy (init image)" "Trivy (php image)" "Trivy (supervisord image)")
               trivy_outcomes=("$init_outcome" "$php_outcome" "$supervisord_outcome")
@@ -451,9 +518,8 @@ runs:
           mv /tmp/pr-comment-truncated.md /tmp/pr-comment.md
         fi
 
-        PR_NUMBER=${{ github.event.pull_request.number }}
-        REPO=${{ github.repository }}
-        MARKER="<!-- vulnerability-scan-results-${{ inputs.REF }} -->"
+        REPO="$GITHUB_REPOSITORY"
+        MARKER="<!-- vulnerability-scan-results-$REF -->"
 
         comment_id=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
           --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$MARKER\")))] | last | .id // empty")
