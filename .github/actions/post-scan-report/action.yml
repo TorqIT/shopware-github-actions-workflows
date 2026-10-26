@@ -267,27 +267,45 @@ runs:
                   (if (.value.fixAvailable | type) == "object" then .value.fixAvailable
                    else (chain_fixes($vulns; .key; []) | sort_by(.isSemVerMajor | not) | first) // .value.fixAvailable
                    end) as $fa |
+                  # npm sometimes "fixes" by downgrading a package to a release that
+                  # predates the vulnerable dependency (e.g. the only version without
+                  # it). Never suggest that: drop that target and point at the patched
+                  # version of the vulnerable package itself, applied via `overrides`.
+                  (($fa | type) == "object" and
+                    (installed($fa.name) | last) as $fa_installed |
+                    $fa_installed != "unknown" and vcmp($fa.version; $fa_installed) < 0) as $downgrade |
+                  (if $downgrade then null else $fa end) as $fa |
+                  # Patched version of each vulnerable dependency (from its own
+                  # advisories), for rows flagged only via those dependencies.
+                  ([.value.via // [] | .[] | select(type == "string")] | unique | map(
+                     . as $dep | (installed($dep)[0]) as $dep_ver |
+                     {name: $dep, fix: ([$vulns[$dep].via // [] | .[] | select(type == "object") | fix_for($dep_ver; .range // "")] |
+                       map(select(. != null)) | sort_by(norm(.)) | last)}
+                   )) as $dep_fixes |
                   [
                     .key,
                     (.value.severity | ascii_upcase),
                     ($installed | join(", ")),
                     (if ($fa | type) == "object" and $fa.name != .key then ("via " + $fa.name + "@" + $fa.version)
                      elif $patched != null then $patched
-                     elif ($fa | type) == "object" then
-                       (if vcmp($fa.version; $current_ver) <= 0 then ($fa.version + " (downgrade)") else $fa.version end)
+                     elif ($fa | type) == "object" then $fa.version
                      else
-                       # Fixable within existing ranges: name the patched version of
-                       # each vulnerable dependency (from its own advisories) when known.
-                       ([.value.via // [] | .[] | select(type == "string")] | unique | map(
-                          . as $dep | (installed($dep)[0]) as $dep_ver |
-                          ([$vulns[$dep].via // [] | .[] | select(type == "object") | fix_for($dep_ver; .range // "")] |
-                            map(select(. != null)) | sort_by(norm(.)) | last) as $dep_fix |
-                          if $dep_fix != null then ($dep + "@" + $dep_fix) else $dep end
-                        )) as $deps |
+                       ($dep_fixes | map(if .fix != null then (.name + "@" + .fix) else .name end)) as $deps |
                        (if ($deps | length) > 0 then ("via " + ($deps | join(", "))) else "-" end)
                      end),
-                    (if ($fa | type) == "object" and $fa.isSemVerMajor then "force" else "auto" end),
-                    (root_advisories($vulns; .key; []) | unique | if length > 0 then join(" ") else "-" end)
+                    (if $downgrade then "override"
+                     elif ($fa | type) == "object" and $fa.isSemVerMajor then "force"
+                     else "auto" end),
+                    (root_advisories($vulns; .key; []) | unique | if length > 0 then join(" ") else "-" end),
+                    # For downgrade rows: the overrides entry to add, and the rejected npm target.
+                    (if $downgrade then
+                       ((if $patched != null then [{name: .key, fix: $patched}] else $dep_fixes end) |
+                         map(select(.fix != null) | {(.name): ("^" + .fix)}) | add // {} |
+                         if length > 0 then tojson else "-" end)
+                     else "-" end),
+                    (if $downgrade then (.value.fixAvailable.name // (chain_fixes($vulns; .key; []) | first | .name)) +
+                       "@" + (.value.fixAvailable.version // (chain_fixes($vulns; .key; []) | first | .version))
+                     else "-" end)
                   ] |
                   @tsv
                 ' "$json_file" 2>/dev/null || echo "")
@@ -297,8 +315,12 @@ runs:
                 echo ""
                 echo "| Package | Severity | Installed | Fix ≥ | Advisory | Command |"
                 echo "|---------|----------|-----------|-------|----------|---------|"
-                while IFS=$'\t' read -r pkg severity installed fix_ver fix_type advisory_urls; do
-                  if [ "$fix_type" = "force" ]; then
+                while IFS=$'\t' read -r pkg severity installed fix_ver fix_type advisory_urls override downgrade_target; do
+                  if [ "$fix_type" = "override" ] && [ "$override" != "-" ]; then
+                    cmd="Add \`\"overrides\": $override\` to package.json _(\`npm audit fix --force\` would downgrade to \`$downgrade_target\`)_"
+                  elif [ "$fix_type" = "override" ]; then
+                    cmd="_No fixed release yet (\`npm audit fix --force\` would downgrade to \`$downgrade_target\`)_"
+                  elif [ "$fix_type" = "force" ]; then
                     cmd="\`npm audit fix --force --prefix $scan_dir\` _(may introduce breaking changes)_"
                   else
                     cmd="\`npm audit fix --prefix $scan_dir\`"
