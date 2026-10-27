@@ -22,6 +22,14 @@ inputs:
   TORQ_GITHUB_TOKEN:
     required: false
     description: "A GitHub access token used to access private GitHub repositories"
+  RUN_TIME_SECRETS:
+    required: false
+    default: ""
+    description: "JSON object containing run-time secrets and their values in key: value format"
+  RUN_TIME_SECRETS_AS_ENV_VARS:
+    required: false
+    default: "false"
+    description: "For legacy systems - set to true if you want the values in RUN_TIME_SECRETS to also be passed as run-time env vars"
   UNIT_TESTS_DIRECTORY:
     required: true
     description: "The directory where the unit tests are located" 
@@ -67,6 +75,13 @@ runs:
         PUSH: "false"
         LOAD: "true"
         TAGS: "test:test"
+
+    - name: Prepare run-time secrets
+      id: run-time-secrets
+      uses: ./reusable-workflow/.github/actions/prepare-run-time-secrets
+      with:
+        RUN_TIME_SECRETS: ${{ inputs.RUN_TIME_SECRETS }}
+        RUN_TIME_SECRETS_AS_ENV_VARS: ${{ inputs.RUN_TIME_SECRETS_AS_ENV_VARS }}
 
     - name: Run unit tests
       shell: bash

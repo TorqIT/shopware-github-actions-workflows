@@ -24,6 +24,11 @@
 #            "my-secret": "${{ secrets.MY_SECRET }}",
 #            ...any other run-time secrets you need
 #         }
+#       RUN_TIME_SECRETS: >
+#         {
+#           "kernel-secret": "${{ secrets.KERNEL_SECRET }}",
+#           ...any other run-time secrets you need
+#         }
 #
 
 name: CI
@@ -151,6 +156,11 @@ on:
         type: string
         default: ""
         description: "Path to .trivyignore.yaml file (e.g. ./.trivyignore.yaml)"
+      RUN_TIME_SECRETS_AS_ENV_VARS:
+        type: boolean
+        required: false
+        default: false
+        description: "For legacy systems - set to true if you want the values in RUN_TIME_SECRETS to be stored as run-time env vars"
 
     secrets:
       SHOPWARE_COMPOSER_TOKEN:
@@ -161,7 +171,7 @@ on:
         description: A JSON object of secrets required at build-time (see above for example format)
       RUN_TIME_SECRETS:
         required: false
-        description: A JSON object of secrets required at run-time (see above for example format)
+        description: A JSON object of secrets required at run-time (see above for example format) - each is mounted at /run/secrets/<key> in the containers used for unit tests and PHPStan
       GITHUB_APP_ID:
         required: false
         description: The ID of the GitHub App used to generate a token for checking out the project repository and submodules
@@ -256,9 +266,11 @@ jobs:
             npm audit --json --omit=dev --prefix "$dir" 2>/dev/null \
               | jq --arg dir "$dir" '. + {_scannedDir: $dir}' \
               > "/tmp/npm-raw-${dir_slug:-root}.json" || true
-            jq '[.packages // {} | to_entries[] | select(.key | test("^node_modules/(@[^/]+/[^/]+|[^/]+)$")) | {name: (.key | ltrimstr("node_modules/")), version: .value.version}]' \
+            # Include nested copies (keyed by lockfile path) so the report can show
+            # the version npm actually flagged rather than only the hoisted one.
+            jq '[.packages // {} | to_entries[] | select(.key | test("(^|/)node_modules/(@[^/]+/[^/]+|[^/]+)$")) | {path: .key, name: (.key | sub("^.*node_modules/"; "")), version: .value.version}]' \
               "$dir/package-lock.json" > "/tmp/npm-packages-${dir_slug:-root}.json" 2>/dev/null || echo '[]' > "/tmp/npm-packages-${dir_slug:-root}.json"
-            fixable_count=$(jq '[(.vulnerabilities // {}) | to_entries[] | select((.value.severity == "high" or .value.severity == "critical") and .value.fixAvailable == true)] | length' "/tmp/npm-raw-${dir_slug:-root}.json" 2>/dev/null || echo 0)
+            fixable_count=$(jq '[(.vulnerabilities // {}) | to_entries[] | select((.value.severity == "high" or .value.severity == "critical") and .value.fixAvailable != false)] | length' "/tmp/npm-raw-${dir_slug:-root}.json" 2>/dev/null || echo 0)
             if [ "$fixable_count" -gt 0 ]; then
               result=1
             else
@@ -534,6 +546,8 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           UNIT_TESTS_DIRECTORY: ${{ inputs.UNIT_TESTS_DIRECTORY }}
+          RUN_TIME_SECRETS: ${{ secrets.RUN_TIME_SECRETS }}
+          RUN_TIME_SECRETS_AS_ENV_VARS: ${{ inputs.RUN_TIME_SECRETS_AS_ENV_VARS }}
 
   run-phpstan:
     name: Run PHPStan
@@ -594,6 +608,8 @@ jobs:
           SHOPWARE_ROOT: ${{ inputs.SHOPWARE_ROOT }}
           SHOPWARE_COMPOSER_TOKEN: ${{ secrets.SHOPWARE_COMPOSER_TOKEN }}
           PHPSTAN_ARGS: ${{ inputs.PHPSTAN_ARGS }}
+          RUN_TIME_SECRETS: ${{ secrets.RUN_TIME_SECRETS }}
+          RUN_TIME_SECRETS_AS_ENV_VARS: ${{ inputs.RUN_TIME_SECRETS_AS_ENV_VARS }}
 
   run-e2e-tests:
     name: Run e2e tests
