@@ -166,8 +166,12 @@ runs:
                 [ -f "$json_file" ] || continue
                 scan_dir=$(jq -r '._scannedDir // "."' "$json_file" 2>/dev/null || echo ".")
                 dir_slug=$(echo "$scan_dir" | sed 's|^\./||;s|/|__|g')
-                pkgs_json=$(cat "./scan-results/npm-packages-${dir_slug:-root}.json" 2>/dev/null || echo '[]')
-                rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                # Read the package list from the file rather than --argjson: with
+                # nested copies included it can exceed Linux's 128 KB per-argument
+                # limit ("Argument list too long"). /dev/null slurps to an empty list.
+                pkgs_file="./scan-results/npm-packages-${dir_slug:-root}.json"
+                jq empty "$pkgs_file" 2>/dev/null || pkgs_file=/dev/null
+                rows=$(jq -r --slurpfile pkgs_in "$pkgs_file" '
                   def norm(v):
                     (v // "" | ascii_downcase | ltrimstr("v")) as $s |
                     ($s | [scan("[0-9]+")] | map(tonumber)) as $parts |
@@ -246,8 +250,8 @@ runs:
                   # node_modules/a/node_modules/semver) resolve to the version npm
                   # actually flagged, not the hoisted top-level one. Entries without
                   # a path (older scan artifacts) fall back to a lookup by name.
-                  ($pkgs | map(select(.path) | {(.path): .version}) | add // {}) as $by_path |
-                  ($pkgs | map(select((.path // ("node_modules/" + .name)) == ("node_modules/" + .name)) | {(.name): .version}) | add // {}) as $versions |
+                  (($pkgs_in[0] // []) | map(select(.path) | {(.path): .version}) | add // {}) as $by_path |
+                  (($pkgs_in[0] // []) | map(select((.path // ("node_modules/" + .name)) == ("node_modules/" + .name)) | {(.name): .version}) | add // {}) as $versions |
                   (.vulnerabilities // {}) as $vulns |
                   # Every installed version of a vulnerable package, lowest first.
                   def installed($name):
@@ -370,8 +374,10 @@ runs:
                 echo "</details>"
                 echo ""
               elif [ -f "./scan-results/composer-audit.json" ] && jq empty ./scan-results/composer-audit.json 2>/dev/null; then
-                pkgs_json=$(cat "./scan-results/composer-packages.json" 2>/dev/null || echo '[]')
-                rows=$(jq -r --argjson pkgs "$pkgs_json" '
+                # Read from the file rather than --argjson (see the npm section).
+                pkgs_file="./scan-results/composer-packages.json"
+                jq empty "$pkgs_file" 2>/dev/null || pkgs_file=/dev/null
+                rows=$(jq -r --slurpfile pkgs_in "$pkgs_file" '
                   def norm(v):
                     (v // "" | ascii_downcase | ltrimstr("v")) as $s |
                     ($s | [scan("[0-9]+")] | map(tonumber)) as $parts |
@@ -413,7 +419,7 @@ runs:
                       ($ranges | map(upper_bound(.)) | map(select(. != null))) as $allfixes |
                       if ($allfixes | length) > 0 then ($allfixes | sort_by(norm(.)) | last) else null end
                     end;
-                  ($pkgs | map({(.name): .version}) | add // {}) as $versions |
+                  (($pkgs_in[0] // []) | map({(.name): .version}) | add // {}) as $versions |
                   .advisories // {} | to_entries[] |
                   .key as $pkg |
                   ($versions[$pkg] // "unknown") as $current_ver |
